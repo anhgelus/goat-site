@@ -40,8 +40,8 @@ func getElem(v reflect.Value) (any, error) {
 		return nil, nil
 	}
 	val := v.Interface()
-	if conv, ok := val.(Lexicon); ok {
-		val = &LexiconJSON{Lexicon: conv}
+	if conv, ok := val.(Record); ok {
+		val = &RecordJSON{Record: conv}
 	}
 	if conv, ok := val.(MarshalerMap); ok {
 		return conv.MarshalMap()

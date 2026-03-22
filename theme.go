@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	LexiconTheme          = LexiconBase + ".theme"
-	LexiconThemeBasic     = LexiconTheme + ".basic"
-	LexiconThemeColor     = LexiconTheme + ".color"
-	LexiconThemeColorRGB  = LexiconThemeColor + "#rgb"
-	LexiconThemeColorRGBA = LexiconThemeColor + "#rgba"
+	CollectionTheme          = CollectionBase + ".theme"
+	CollectionThemeBasic     = CollectionTheme + ".basic"
+	CollectionThemeColor     = CollectionTheme + ".color"
+	CollectionThemeColorRGB  = CollectionThemeColor + "#rgb"
+	CollectionThemeColorRGBA = CollectionThemeColor + "#rgba"
 )
 
 // Theme ensures [Publication]s maintain their visual identity across different reading applications and platforms by
@@ -28,7 +28,7 @@ type Theme struct {
 }
 
 func (t *Theme) Type() string {
-	return LexiconThemeBasic
+	return CollectionThemeBasic
 }
 
 // RGB represents a RGB color.
@@ -45,7 +45,7 @@ func NewRGB(r, g, b uint8) *RGB {
 }
 
 func (r *RGB) Type() string {
-	return LexiconThemeColorRGB
+	return CollectionThemeColorRGB
 }
 
 func (r *RGB) RGBA() *RGBA {
@@ -81,7 +81,7 @@ func NewRGBA(r *color.RGBA) *RGBA {
 }
 
 func (r *RGBA) Type() string {
-	return LexiconThemeColorRGBA
+	return CollectionThemeColorRGBA
 }
 
 func (r *RGBA) String() string {

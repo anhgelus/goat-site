@@ -72,12 +72,12 @@ const samplePub = `{
 }`
 
 func TestPublication_JSON(t *testing.T) {
-	var v *site.LexiconJSON
+	var v *site.RecordJSON
 	err := json.Unmarshal([]byte(samplePub), &v)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub := v.Lexicon.(*site.Publication)
+	pub := v.Record.(*site.Publication)
 	if pub.Name != "pckt - Dev Journal" {
 		t.Errorf("invalid name: %s", pub.Name)
 	}

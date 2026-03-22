@@ -1,6 +1,6 @@
 package site
 
-const LexiconSubscription = LexiconBase + ".graph.subscription"
+const CollectionSubscription = CollectionBase + ".graph.subscription"
 
 // Subscription enable users to follow publications and receive updates about new content.
 // They represent the social connection between readers and the publications they're interested in.
@@ -11,5 +11,5 @@ type Subscription struct {
 }
 
 func (s *Subscription) Type() string {
-	return LexiconSubscription
+	return CollectionSubscription
 }

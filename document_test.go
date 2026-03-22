@@ -1,11 +1,16 @@
 package site_test
 
 import (
+	"context"
 	"encoding/json"
 	"slices"
 	"testing"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/atclient"
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
@@ -14,12 +19,12 @@ const sampleDoc = `
 `
 
 func TestDocument_JSON(t *testing.T) {
-	var v *site.LexiconJSON
+	var v *site.RecordJSON
 	err := json.Unmarshal([]byte(sampleDoc), &v)
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc := v.Lexicon.(*site.Document)
+	doc := v.Record.(*site.Document)
 	if doc.Site != `at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.publication/3mhm4m2tets2y` {
 		t.Errorf("invalid site: %s", doc.Site)
 	}
@@ -34,8 +39,8 @@ func TestDocument_JSON(t *testing.T) {
 		t.Errorf("invalid path: %s", *doc.Path)
 	}
 
-	if doc.Content.Lexicon != nil {
-		t.Errorf("invalid content lexicon: %v", doc.Content.Lexicon)
+	if doc.Content.Record != nil {
+		t.Errorf("invalid content lexicon: %v", doc.Content.Record)
 	}
 	if doc.Content.Type != `pub.leaflet.content` {
 		t.Errorf("invalid content type: %s", doc.Content.Type)
@@ -52,4 +57,69 @@ func TestDocument_JSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(b))
+}
+
+const testDoc = "at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.document/3mhm4obhnx22y"
+
+var (
+	docURI    syntax.ATURI
+	docClient *lexutil.LexClient
+)
+
+func getClient(t *testing.T) (syntax.ATURI, lexutil.LexClient) {
+	var err error
+	defer func() {
+		if err == nil {
+			t.Log(docURI.String())
+		}
+	}()
+	if docClient != nil {
+		return docURI, *docClient
+	}
+	dir := identity.DefaultDirectory()
+	docURI, err = syntax.ParseATURI(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var id *identity.Identity
+	id, err = dir.Lookup(context.Background(), docURI.Authority())
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := lexutil.LexClient(atclient.NewAPIClient(id.PDSEndpoint()))
+	docClient = &client
+	return docURI, *docClient
+}
+
+func TestGetDocument(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	uri, client := getClient(t)
+	doc, err := site.GetDocument(context.Background(), client, uri.Authority().String(), uri.RecordKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc == nil {
+		t.Errorf("doc is nil")
+	}
+}
+
+func TestListDocuments(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	uri, client := getClient(t)
+	docs, _, err := site.ListDocuments(context.Background(), client, uri.Authority().String(), "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if docs == nil {
+		t.Errorf("docs is nil")
+	}
+	for i, doc := range docs {
+		if doc == nil {
+			t.Errorf("doc %d is nil", i)
+		}
+	}
 }

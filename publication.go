@@ -2,13 +2,14 @@ package site
 
 import "strings"
 
-const LexiconPublication = LexiconBase + ".publication"
+const CollectionPublication = CollectionBase + ".publication"
 
-// Publication represents a collection of documents published to the web.
+// Publication represents a collection of [Document]s published to the web.
 // It includes important information about a publication including its location on the web, theming information, user
-// preferences, and more.
+// [Preferences], and more.
 //
-// The publication lexicon is not a requirement, but is recommended when publishing collections of related documents.
+// The [Publication] [Record] is not a requirement, but is recommended when publishing collections of related
+// [Document]s.
 type Publication struct {
 	// Base URL of the [Publication].
 	// This value will be combined with the [Document.Path] to construct a full URL for the document.
@@ -32,7 +33,7 @@ type Publication struct {
 }
 
 func (p *Publication) Type() string {
-	return LexiconPublication
+	return CollectionPublication
 }
 
 func (p *Publication) MarshalMap() (map[string]any, error) {
