@@ -2,45 +2,54 @@ package site
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 type Lexicon interface {
 	Type() string
 }
 
-const LexiconBase = "site.standard"
+const (
+	LexiconBase = "site.standard"
+	LexiconBlob = "blob"
 
-// LexiconJSON is used to convert [Lexicon] into JSON.
+	TimeFormat = "2006-01-02T15:04:05.000Z"
+)
+
+// LexiconJSON is used to encode and decode [Lexicon] from JSON.
 type LexiconJSON struct {
-	Lexicon
+	// Lexicon parsed.
+	// Nil if [Lexicon] is unknown.
+	Lexicon Lexicon
+	// Type stored if [Lexicon] is unknown.
+	// Set after [json.Unmarshal].
+	Type string
+	// Raw returns bytes stored if [Lexicon] is unknown.
+	// Set after [json.Unmarshal].
+	Raw []byte
 }
 
-func (l LexiconJSON) MarshalJSON() ([]byte, error) {
-	v := struct {
-		any
-		Type string `json:"$type"`
-	}{nil, l.Type()}
-	switch l.Type() {
-	case LexiconPublication:
-		v.any = l.Lexicon.(*Publication)
-	case LexiconDocument:
-		v.any = l.Lexicon.(*Document)
-	case LexiconSubscription:
-		v.any = l.Lexicon.(*Subscription)
-	case LexiconTheme:
-		v.any = l.Lexicon.(*Theme)
-	case LexiconThemeColorRGB:
-		v.any = l.Lexicon.(*RGB)
-	case LexiconThemeColorRGBA:
-		v.any = l.Lexicon.(*RGBA)
-	default:
-		return nil, errors.New("unsupported lexicon type")
+func (l *LexiconJSON) MarshalJSON() ([]byte, error) {
+	if l.Lexicon == nil {
+		return l.Raw, nil
 	}
-	return json.Marshal(v)
+	mp, err := l.MarshalMap()
+	if err != nil {
+		return nil, err
+	}
+	mp["$type"] = l.Lexicon.Type()
+	return json.Marshal(mp)
 }
 
-func (l LexiconJSON) UnmarshalJSON(b []byte) error {
+func (l *LexiconJSON) MarshalMap() (mp map[string]any, err error) {
+	if l.Lexicon == nil {
+		err = json.Unmarshal(l.Raw, &mp)
+		return
+	}
+	mp, err = MarshalToMap(l.Lexicon)
+	return
+}
+
+func (l *LexiconJSON) UnmarshalJSON(b []byte) error {
 	var v struct {
 		Type string `json:"$type"`
 	}
@@ -50,19 +59,59 @@ func (l LexiconJSON) UnmarshalJSON(b []byte) error {
 	}
 	switch v.Type {
 	case LexiconPublication:
-		l.Lexicon = l.Lexicon.(*Publication)
+		l.Lexicon = &Publication{}
 	case LexiconDocument:
-		l.Lexicon = l.Lexicon.(*Document)
+		l.Lexicon = &Document{}
 	case LexiconSubscription:
-		l.Lexicon = l.Lexicon.(*Subscription)
-	case LexiconTheme:
-		l.Lexicon = l.Lexicon.(*Theme)
+		l.Lexicon = &Subscription{}
+	case LexiconThemeBasic:
+		l.Lexicon = &Theme{}
 	case LexiconThemeColorRGB:
-		l.Lexicon = l.Lexicon.(*RGB)
+		l.Lexicon = &RGB{}
 	case LexiconThemeColorRGBA:
-		l.Lexicon = l.Lexicon.(*RGBA)
+		l.Lexicon = &RGBA{}
+	case LexiconBlob:
+		l.Lexicon = &Blob{}
 	default:
-		return errors.New("unsupported lexicon type")
+		l.Raw = b
+		l.Type = v.Type
+		return nil
 	}
 	return json.Unmarshal(b, l.Lexicon)
+}
+
+// Blob represents an ATProto `blob` type.
+type Blob struct {
+	CID      string `json:"-"`
+	MimeType string `json:"mimeType"`
+	Size     uint   `json:"size"`
+}
+
+func (b *Blob) Type() string {
+	return LexiconBlob
+}
+
+func (b *Blob) MarshalMap() (map[string]any, error) {
+	mp := make(map[string]any, 3)
+	mp["mimeType"] = b.MimeType
+	mp["size"] = b.Size
+	mp["ref"] = map[string]any{"$link": b.CID}
+	return mp, nil
+}
+
+func (b *Blob) UnmarshalJSON(data []byte) error {
+	type t Blob
+	var v struct {
+		t
+		Ref struct {
+			Link string `json:"$link"`
+		} `json:"ref"`
+	}
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return err
+	}
+	*b = Blob(v.t)
+	b.CID = v.Ref.Link
+	return nil
 }
