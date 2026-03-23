@@ -161,6 +161,10 @@ func get[T Record](ctx context.Context, client lexutil.LexClient, collection str
 		err = ErrInvalidType{collection, v.Type}
 		return
 	}
+	if v.Record.Type() != collection {
+		err = ErrInvalidType{collection, v.Record.Type()}
+		return
+	}
 	return v.Record.(T), nil
 }
 
@@ -184,6 +188,9 @@ func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collect
 		if v.Record == nil {
 			return nil, nil, ErrInvalidType{collection, v.Type}
 		}
+		if v.Record.Type() != collection {
+			return nil, nil, ErrInvalidType{collection, v.Record.Type()}
+		}
 		docs[i] = v.Record.(T)
 		i++
 	}
@@ -191,7 +198,7 @@ func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collect
 }
 
 // createRecord a T in a repo with the given rkey.
-// Always tries to validate the [Document] against the [Record] saved.
+// Always tries to validate the [Document] against the lexicon saved.
 //
 // Rkey can be nil.
 func createRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey *syntax.RecordKey, v T) (*Result, error) {
@@ -219,7 +226,7 @@ func createRecord[T Record](ctx context.Context, client lexutil.LexClient, colle
 }
 
 // updateRecord T in a repo with the given rkey.
-// Always tries to validate the [Document] against the [Record] saved.
+// Always tries to validate the [Document] against the lexicon saved.
 func updateRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey, v T) (*Result, error) {
 	mp, err := MarshalToMap(&RecordJSON{Record: v})
 	if err != nil {

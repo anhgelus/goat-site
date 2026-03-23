@@ -1,9 +1,14 @@
 package site_test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
+	"github.com/bluesky-social/indigo/atproto/atclient"
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
@@ -118,4 +123,70 @@ func TestPublication_JSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(b))
+}
+
+const testPub = "at://did:plc:yk4dd2qkboz2yv6tpubpc6co/site.standard.publication/3m6zrpzbs3s2y"
+
+var (
+	pubURI    syntax.ATURI
+	pubClient *lexutil.LexClient
+)
+
+func getClient(t *testing.T, test string, uri *syntax.ATURI, client **lexutil.LexClient) (syntax.ATURI, lexutil.LexClient) {
+	var err error
+	defer func() {
+		if err == nil {
+			t.Log(uri.Authority().String(), uri.RecordKey())
+		}
+	}()
+	if *client != nil {
+		return *uri, **client
+	}
+	dir := identity.DefaultDirectory()
+	*uri, err = syntax.ParseATURI(test)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var id *identity.Identity
+	id, err = dir.Lookup(context.Background(), uri.Authority())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("using", id.PDSEndpoint(), "for", test)
+	c := lexutil.LexClient(atclient.NewAPIClient(id.PDSEndpoint()))
+	*client = &c
+	return *uri, **client
+}
+
+func TestGetPublication(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	uri, client := getClient(t, testPub, &pubURI, &pubClient)
+	pub, err := site.GetPublication(context.Background(), client, uri.Authority(), uri.RecordKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub == nil {
+		t.Errorf("pub is nil")
+	}
+}
+
+func TestListPublications(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	uri, client := getClient(t, testPub, &pubURI, &pubClient)
+	pubs, _, err := site.ListDocuments(context.Background(), client, uri.Authority(), "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pubs == nil {
+		t.Errorf("pubs is nil")
+	}
+	for i, pub := range pubs {
+		if pub == nil {
+			t.Errorf("pub %d is nil", i)
+		}
+	}
 }

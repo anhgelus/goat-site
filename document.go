@@ -116,7 +116,7 @@ func ListDocuments(ctx context.Context, client lexutil.LexClient, repo syntax.At
 }
 
 // CreateDocument in a repo with the given rkey.
-// Always tries to validate the [Document] against the [Record] saved.
+// Always tries to validate the [Document] against the lexicon saved.
 //
 // Rkey can be nil.
 func CreateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey *syntax.RecordKey, doc *Document) (*Result, error) {
@@ -124,7 +124,7 @@ func CreateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.A
 }
 
 // UpdateDocument in a repo with the given rkey.
-// Always tries to validate the [Document] against the [Record] saved.
+// Always tries to validate the [Document] against the lexicon saved.
 func UpdateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey, doc *Document) (*Result, error) {
 	return updateRecord(ctx, client, CollectionDocument, repo, rkey, doc)
 }

@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/atclient"
-	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	site "tangled.org/anhgelus.world/goat-site"
@@ -66,36 +64,11 @@ var (
 	docClient *lexutil.LexClient
 )
 
-func getClient(t *testing.T) (syntax.ATURI, lexutil.LexClient) {
-	var err error
-	defer func() {
-		if err == nil {
-			t.Log(docURI.String())
-		}
-	}()
-	if docClient != nil {
-		return docURI, *docClient
-	}
-	dir := identity.DefaultDirectory()
-	docURI, err = syntax.ParseATURI(testDoc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var id *identity.Identity
-	id, err = dir.Lookup(context.Background(), docURI.Authority())
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := lexutil.LexClient(atclient.NewAPIClient(id.PDSEndpoint()))
-	docClient = &client
-	return docURI, *docClient
-}
-
 func TestGetDocument(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	uri, client := getClient(t)
+	uri, client := getClient(t, testDoc, &docURI, &docClient)
 	doc, err := site.GetDocument(context.Background(), client, uri.Authority(), uri.RecordKey())
 	if err != nil {
 		t.Fatal(err)
@@ -109,7 +82,7 @@ func TestListDocuments(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	uri, client := getClient(t)
+	uri, client := getClient(t, testDoc, &docURI, &docClient)
 	docs, _, err := site.ListDocuments(context.Background(), client, uri.Authority(), "", false)
 	if err != nil {
 		t.Fatal(err)
