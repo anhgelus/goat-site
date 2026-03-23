@@ -125,7 +125,11 @@ func TestPublication_JSON(t *testing.T) {
 	t.Log(string(b))
 }
 
-const testPub = "at://did:plc:yk4dd2qkboz2yv6tpubpc6co/site.standard.publication/3m6zrpzbs3s2y"
+// leaflet publication
+// const testPub = "at://did:plc:yk4dd2qkboz2yv6tpubpc6co/site.standard.publication/3m6zrpzbs3s2y"
+
+// pckt publication (because they do not use the preferred time format!)
+const testPub = "at://did:plc:revjuqmkvrw6fnkxppqtszpv/site.standard.publication/3md4kftpfxs2z"
 
 var (
 	pubURI    syntax.ATURI
@@ -177,7 +181,7 @@ func TestListPublications(t *testing.T) {
 		t.Skip()
 	}
 	uri, client := getClient(t, testPub, &pubURI, &pubClient)
-	pubs, _, err := site.ListDocuments(context.Background(), client, uri.Authority(), "", false)
+	pubs, _, err := site.ListPublications(context.Background(), client, uri.Authority(), "", false)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -88,12 +88,13 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	v.t.PublishedAt, err = time.Parse(TimeFormat, v.PublishedAt)
+	v.t.PublishedAt, err = ParseTime(v.PublishedAt)
 	if err != nil {
 		return err
 	}
 	if v.UpdatedAt != nil {
-		v.t.PublishedAt, err = time.Parse(TimeFormat, *v.UpdatedAt)
+		v.t.UpdatedAt = new(time.Time)
+		*v.t.UpdatedAt, err = ParseTime(*v.UpdatedAt)
 		if err != nil {
 			return err
 		}

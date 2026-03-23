@@ -32,7 +32,12 @@ var opts = []options{
 		}
 		return v, true
 	}),
-	newOpt("string", func(v any) (any, bool) { return fmt.Sprintf("%v", v), true }),
+	newOpt("string", func(v any) (any, bool) {
+		if cv, ok := v.(fmt.Stringer); ok {
+			return cv.String(), true
+		}
+		return fmt.Sprintf("%v", v), true
+	}),
 }
 
 func getElem(v reflect.Value) (any, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/bluesky-social/indigo/api/agnostic"
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -21,8 +22,16 @@ const (
 	CollectionBase = "site.standard"
 	CollectionBlob = "blob"
 
-	TimeFormat = "2006-01-02T15:04:05.000Z"
+	TimeFormat = "2006-01-02T15:04:05.000Z07:00"
 )
+
+func ParseTime(raw string) (t time.Time, err error) {
+	t, err = time.Parse(TimeFormat, raw)
+	if err != nil {
+		t, err = time.Parse(time.RFC3339, raw)
+	}
+	return
+}
 
 // RecordJSON is used to encode and to decode [Record] from JSON.
 type RecordJSON struct {
@@ -178,7 +187,7 @@ func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collect
 	}
 	docs := make([]T, MaxItemsPerList)
 	i := 0
-	for i < len(rec.Records) {
+	for i = range len(rec.Records) {
 		r := rec.Records[i]
 		var v *RecordJSON
 		err = json.Unmarshal(*r.Value, &v)
@@ -192,7 +201,6 @@ func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collect
 			return nil, nil, ErrInvalidType{collection, v.Record.Type()}
 		}
 		docs[i] = v.Record.(T)
-		i++
 	}
 	return docs[:i], rec.Cursor, nil
 }
