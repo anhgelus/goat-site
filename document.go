@@ -36,7 +36,7 @@ type Document struct {
 	// CoverImage to used for thumbnail or cover.
 	// Less than 1MB in size.
 	CoverImage *Blob `json:"coverImage,omitempty"`
-	// Content is a custom [Lexicon] used to define the [Document]'s content.
+	// Content is a custom [Record] used to define the [Document]'s content.
 	Content *RecordJSON `json:"content,omitempty"`
 	// TextContent is a plaintext representation of the [Document.Content].
 	// Should not contain markdown or other formatting.

@@ -22,6 +22,7 @@ const (
 	CollectionBase = "site.standard"
 	CollectionBlob = "blob"
 
+	// TimeFormat is the standard time format specified by the ATProto.
 	TimeFormat = "2006-01-02T15:04:05.000Z07:00"
 )
 
