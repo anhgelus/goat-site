@@ -194,3 +194,18 @@ func TestListPublications(t *testing.T) {
 		}
 	}
 }
+
+func TestPublicationVerification(t *testing.T) {
+	uri := site.GetPublicationVerificationURI("")
+	if uri != "/.well-known/site.standard.publication" {
+		t.Errorf("invalid uri: %s", uri)
+	}
+	uri = site.GetPublicationVerificationURI("/path/to/publication")
+	if uri != "/.well-known/site.standard.publication/path/to/publication" {
+		t.Errorf("invalid uri: %s", uri)
+	}
+	uri = site.GetPublicationVerificationURI("path/to/publication")
+	if uri != "/.well-known/site.standard.publication/path/to/publication" {
+		t.Errorf("invalid uri: %s", uri)
+	}
+}

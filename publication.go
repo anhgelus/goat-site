@@ -99,9 +99,14 @@ func HandlePublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordK
 }
 
 // GetPublicationVerificationURI returns the URI called during the verification of the [Publication].
-// Path must be empty if the [Publication] is located at the domain root.
+//
+// path must be empty if the [Publication] is located at the domain root.
+// path must start with a slash.
 //
 // See [HandlePublicationVerification].
 func GetPublicationVerificationURI(path string) string {
+	if len(path) > 0 && !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
 	return "/.well-known/" + CollectionPublication + path
 }

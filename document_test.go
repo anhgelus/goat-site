@@ -96,3 +96,10 @@ func TestListDocuments(t *testing.T) {
 		}
 	}
 }
+
+func TestDocumentVerification(t *testing.T) {
+	tag := site.GetDocumentVerificationTag("did:plc:xyz789", "rkey")
+	if tag != `<link rel="site.standard.document" href="at://did:plc:xyz789/site.standard.document/rkey">` {
+		t.Errorf("invalid tag: %s", tag)
+	}
+}
