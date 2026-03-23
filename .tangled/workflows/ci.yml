@@ -1,0 +1,16 @@
+when:
+  - event: ["push", "pull_request"]
+    branch: main
+
+engine: nixery
+
+dependencies:
+  - go
+
+steps:
+  - name: Lint code
+    command: |
+      go vet -x ./...
+  - name: Run tests
+    command: |
+      go test -v -race ./...

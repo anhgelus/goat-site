@@ -1,0 +1,13 @@
+when:
+  - event: ["push", "pull_request"]
+    branch: main
+
+engine: nixery
+
+dependencies:
+  - go
+
+steps:
+  - name: Check formatting
+    command: |
+      diff <(gofmt -d .) <(echo -n)
