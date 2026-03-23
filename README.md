@@ -13,7 +13,7 @@ Get the module with:
 go get -u tangled.org/anhgelus.world/goat-site
 ```
 
-Each Standard.site lexicon is implemented:
+Each [Standard.site lexicon](https://standard.site/#definitions) is implemented:
 - `Publication` is for `site.standard.publication`;
 - `Document` is for `site.standard.document`;
 - `Subscription` is for `site.standard.graph.subscription`.
@@ -51,7 +51,7 @@ func (c *Content) Type() string {
 }
 ```
 
-But, if you use `site.GetDocument` to retrieve one, it will return a simple `site.Document` without your custom content!
+But if you use `site.GetDocument` to retrieve one, it will return a simple `site.Document` without your custom content!
 The `Document.Content` field is a `site.RecordJSON`, a wrapper.
 You can get the type of the content with `RecordJSON.Type` and the raw bytes with `RecordJSON.Raw`.
 You can also directly parse your `Content` with `RecordJSON.As`:
@@ -92,5 +92,6 @@ func (c *Content) MarshalMap() (map[string]any, error) {
     mp["foo"] = "bar"
     return mp, nil
 }
-// the future call to site.MarshalToMap on *Content will return map[string]any{"foo":"bar"}.
+// the future call to site.MarshalToMap on *Content 
+// will return map[string]any{"foo":"bar"}.
 ```

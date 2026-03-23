@@ -45,8 +45,8 @@ func getElem(v reflect.Value) (any, error) {
 		return nil, nil
 	}
 	val := v.Interface()
-	if conv, ok := val.(Record); ok {
-		val = &RecordJSON{Record: conv}
+	if r, ok := val.(Record); ok {
+		val = AsJSON(r)
 	}
 	if conv, ok := val.(MarshalerMap); ok {
 		return conv.MarshalMap()

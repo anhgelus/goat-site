@@ -55,6 +55,11 @@ var (
 )
 
 // RecordJSON is used to encode and to decode [Record] from JSON.
+//
+// If the [Record] is known by the library, it is decoded in [RecordJSON.Record].
+// Else its type is filled in [RecordJSON.Type] and its raw bytes are placed in [RecordJSON.Raw].
+//
+// See [AsJSON] to create a [RecordJSON] from a [Record].
 type RecordJSON struct {
 	// Record parsed.
 	// Nil if [Record] is unknown.
@@ -65,6 +70,11 @@ type RecordJSON struct {
 	// Raw returns bytes stored if [Record] is unknown.
 	// Set after [json.Unmarshal].
 	Raw []byte
+}
+
+// AsJSON wraps a [Record] as a [RecordJSON].
+func AsJSON(r Record) *RecordJSON {
+	return &RecordJSON{Record: r}
 }
 
 // As unmarshals the [RecordJSON] as the provided [Record].
@@ -240,7 +250,7 @@ func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collect
 //
 // Rkey can be nil.
 func createRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey *syntax.RecordKey, v T) (*Result, error) {
-	mp, err := MarshalToMap(&RecordJSON{Record: v})
+	mp, err := MarshalToMap(AsJSON(v))
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +276,7 @@ func createRecord[T Record](ctx context.Context, client lexutil.LexClient, colle
 // updateRecord T in a repo with the given rkey.
 // Always tries to validate the [Document] against the lexicon saved.
 func updateRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey, v T) (*Result, error) {
-	mp, err := MarshalToMap(&RecordJSON{Record: v})
+	mp, err := MarshalToMap(AsJSON(v))
 	if err != nil {
 		return nil, err
 	}
