@@ -3,13 +3,9 @@ package site
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 	"time"
 
-	"github.com/bluesky-social/indigo/api/agnostic"
-	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
@@ -108,99 +104,32 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 
 // GetDocument returns the [Document] in the repo associated with the rkey.
 // Automatically uses the latest CID.
-func GetDocument(ctx context.Context, client lexutil.LexClient, repo string, rkey syntax.RecordKey) (*Document, error) {
-	rec, err := agnostic.RepoGetRecord(ctx, client, "", CollectionDocument, repo, string(rkey))
-	if err != nil {
-		return nil, err
-	}
-	var v *RecordJSON
-	err = json.Unmarshal(*rec.Value, &v)
-	if err != nil {
-		return nil, err
-	}
-	if v.Record == nil {
-		return nil, errors.Join(ErrInvalidType, fmt.Errorf("expected %s, not %s", CollectionDocument, v.Type))
-	}
-	return v.Record.(*Document), nil
+func GetDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) (*Document, error) {
+	return get[*Document](ctx, client, CollectionDocument, repo, rkey)
 }
 
 // ListDocuments returns all the [Document]s stored in the repo and the cursor.
 //
 // See [MaxItemsPerList].
-func ListDocuments(ctx context.Context, client lexutil.LexClient, repo, cursor string, reverse bool) ([]*Document, *string, error) {
-	rec, err := agnostic.RepoListRecords(ctx, client, CollectionDocument, cursor, MaxItemsPerList, repo, reverse)
-	if err != nil {
-		return nil, nil, err
-	}
-	docs := make([]*Document, MaxItemsPerList)
-	i := 0
-	for i < len(rec.Records) {
-		r := rec.Records[i]
-		err = json.Unmarshal(*r.Value, &docs[i])
-		if err != nil {
-			return nil, nil, err
-		}
-		i++
-	}
-	return docs[:i], rec.Cursor, nil
+func ListDocuments(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, cursor string, reverse bool) ([]*Document, *string, error) {
+	return listRecord[*Document](ctx, client, CollectionDocument, repo, cursor, reverse)
 }
 
 // CreateDocument in a repo with the given rkey.
 // Always tries to validate the [Document] against the [Record] saved.
 //
 // Rkey can be nil.
-func CreateDocument(ctx context.Context, client lexutil.LexClient, repo string, rkey *syntax.RecordKey, doc *Document) (*Result, error) {
-	mp, err := MarshalToMap(&RecordJSON{Record: doc})
-	if err != nil {
-		return nil, err
-	}
-	var cv *string
-	if rkey != nil {
-		t := string(*rkey)
-		cv = &t
-	}
-	t := true
-	out, err := agnostic.RepoCreateRecord(ctx, client, &agnostic.RepoCreateRecord_Input{
-		Collection: CollectionDocument,
-		Record:     mp,
-		Repo:       repo,
-		Rkey:       cv,
-		Validate:   &t,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &Result{out.Uri, out.Cid, out.ValidationStatus, out.Commit}, nil
+func CreateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey *syntax.RecordKey, doc *Document) (*Result, error) {
+	return createRecord(ctx, client, CollectionDocument, repo, rkey, doc)
 }
 
 // UpdateDocument in a repo with the given rkey.
 // Always tries to validate the [Document] against the [Record] saved.
-func UpdateDocument(ctx context.Context, client lexutil.LexClient, repo string, rkey syntax.RecordKey, doc *Document) (*Result, error) {
-	mp, err := MarshalToMap(&RecordJSON{Record: doc})
-	if err != nil {
-		return nil, err
-	}
-	t := true
-	out, err := agnostic.RepoPutRecord(ctx, client, &agnostic.RepoPutRecord_Input{
-		Collection: CollectionDocument,
-		Record:     mp,
-		Repo:       repo,
-		Rkey:       string(rkey),
-		Validate:   &t,
-		//SwapRecord: &cid,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &Result{out.Uri, out.Cid, out.ValidationStatus, out.Commit}, nil
+func UpdateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey, doc *Document) (*Result, error) {
+	return updateRecord(ctx, client, CollectionDocument, repo, rkey, doc)
 }
 
 // DeleteDocument in a repo with the given rkey.
-func DeleteDocument(ctx context.Context, client lexutil.LexClient, repo string, rkey syntax.RecordKey) error {
-	_, err := atproto.RepoDeleteRecord(ctx, client, &atproto.RepoDeleteRecord_Input{
-		Collection: CollectionDocument,
-		Repo:       repo,
-		Rkey:       string(rkey),
-	})
-	return err
+func DeleteDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
+	return deleteRecord(ctx, client, CollectionDocument, repo, rkey)
 }

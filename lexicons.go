@@ -1,10 +1,14 @@
 package site
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 
 	"github.com/bluesky-social/indigo/api/agnostic"
+	"github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
 // Record represents an ATProto record.
@@ -121,9 +125,13 @@ func (b *Blob) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var (
-	ErrInvalidType = errors.New("invalid collection type")
-)
+type ErrInvalidType struct {
+	expected, got string
+}
+
+func (err ErrInvalidType) Error() string {
+	return fmt.Sprintf("invalid collection type: expected %s, got %s", err.expected, err.got)
+}
 
 // MaxItemsPerList is the number of items per list call.
 const MaxItemsPerList = 25
@@ -134,4 +142,110 @@ type Result struct {
 	CID              string
 	ValidationStatus *string
 	Commit           *agnostic.RepoDefs_CommitMeta
+}
+
+// get returns the T in the repo associated with the rkey.
+// Automatically uses the latest CID.
+func get[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey) (t T, err error) {
+	var rec *agnostic.RepoGetRecord_Output
+	rec, err = agnostic.RepoGetRecord(ctx, client, "", collection, repo.String(), rkey.String())
+	if err != nil {
+		return
+	}
+	var v *RecordJSON
+	err = json.Unmarshal(*rec.Value, &v)
+	if err != nil {
+		return
+	}
+	if v.Record == nil {
+		err = ErrInvalidType{collection, v.Type}
+		return
+	}
+	return v.Record.(T), nil
+}
+
+// listRecord returns all the Ts stored in the repo and the cursor.
+//
+// See [MaxItemsPerList].
+func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, cursor string, reverse bool) ([]T, *string, error) {
+	rec, err := agnostic.RepoListRecords(ctx, client, collection, cursor, MaxItemsPerList, repo.String(), reverse)
+	if err != nil {
+		return nil, nil, err
+	}
+	docs := make([]T, MaxItemsPerList)
+	i := 0
+	for i < len(rec.Records) {
+		r := rec.Records[i]
+		var v *RecordJSON
+		err = json.Unmarshal(*r.Value, &v)
+		if err != nil {
+			return nil, nil, err
+		}
+		if v.Record == nil {
+			return nil, nil, ErrInvalidType{collection, v.Type}
+		}
+		docs[i] = v.Record.(T)
+		i++
+	}
+	return docs[:i], rec.Cursor, nil
+}
+
+// createRecord a T in a repo with the given rkey.
+// Always tries to validate the [Document] against the [Record] saved.
+//
+// Rkey can be nil.
+func createRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey *syntax.RecordKey, v T) (*Result, error) {
+	mp, err := MarshalToMap(&RecordJSON{Record: v})
+	if err != nil {
+		return nil, err
+	}
+	var cv *string
+	if rkey != nil {
+		t := rkey.String()
+		cv = &t
+	}
+	t := true
+	out, err := agnostic.RepoCreateRecord(ctx, client, &agnostic.RepoCreateRecord_Input{
+		Collection: collection,
+		Record:     mp,
+		Repo:       repo.String(),
+		Rkey:       cv,
+		Validate:   &t,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Result{out.Uri, out.Cid, out.ValidationStatus, out.Commit}, nil
+}
+
+// updateRecord T in a repo with the given rkey.
+// Always tries to validate the [Document] against the [Record] saved.
+func updateRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey, v T) (*Result, error) {
+	mp, err := MarshalToMap(&RecordJSON{Record: v})
+	if err != nil {
+		return nil, err
+	}
+	t := true
+	out, err := agnostic.RepoPutRecord(ctx, client, &agnostic.RepoPutRecord_Input{
+		Collection: collection,
+		Record:     mp,
+		Repo:       repo.String(),
+		Rkey:       rkey.String(),
+		Validate:   &t,
+		//SwapRecord: &cid,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Result{out.Uri, out.Cid, out.ValidationStatus, out.Commit}, nil
+}
+
+// delete in a repo with the given rkey.
+func deleteRecord(ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
+	_, err := atproto.RepoDeleteRecord(ctx, client, &atproto.RepoDeleteRecord_Input{
+		Collection: collection,
+		Repo:       repo.String(),
+		Rkey:       rkey.String(),
+	})
+	return err
 }
