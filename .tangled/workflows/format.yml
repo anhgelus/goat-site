@@ -5,7 +5,9 @@ when:
 engine: nixery
 
 dependencies:
-  - go
+  nixpkgs:
+    - go
+    - diffutils
 
 steps:
   - name: Check formatting

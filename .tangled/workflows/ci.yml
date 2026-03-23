@@ -5,12 +5,14 @@ when:
 engine: nixery
 
 dependencies:
-  - go
+  nixpkgs:
+    - go
+    - gcc
 
 steps:
   - name: Lint code
     command: |
-      go vet -x ./...
+      go vet -v ./...
   - name: Run tests
     command: |
       go test -v -race ./...
