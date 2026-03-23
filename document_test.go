@@ -16,6 +16,14 @@ const sampleDoc = `
 {"$type":"site.standard.document","bskyPostRef":{"cid":"bafyreidepvhssy3zglq3bo4nauszqhqmbk6lzzfay3r2nskvijyiewlr2u","commit":{"cid":"bafyreickwfv4p2jr6zvbdk6mldmddag2m6grpkbbvkvz57mvaqso5dpf5e","rev":"3mhm4oeyyzi2g"},"uri":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/app.bsky.feed.post/3mhm4oevhmk2d","validationStatus":"valid"},"content":{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]},"path":"/3mhm4obhnx22y","publishedAt":"2026-03-21T22:52:35.182Z","site":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.publication/3mhm4m2tets2y","tags":[],"title":"hello world"}
 `
 
+type content struct {
+	Pages []any `json:"pages"`
+}
+
+func (c *content) Type() string {
+	return `pub.leaflet.content`
+}
+
 func TestDocument_JSON(t *testing.T) {
 	var v *site.RecordJSON
 	err := json.Unmarshal([]byte(sampleDoc), &v)
@@ -55,6 +63,16 @@ func TestDocument_JSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(b))
+
+	c := new(content)
+	err = doc.Content.As(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Pages == nil {
+		t.Errorf("invalid content pages: nil")
+	}
+	t.Logf("%v", c.Pages)
 }
 
 const testDoc = "at://did:plc:zcanytzlaumjwgaopolw6wes/site.standard.document/3mhmdp3qobs2o"

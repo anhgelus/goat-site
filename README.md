@@ -59,7 +59,7 @@ You can also directly parse your `Content` with `RecordJSON.As`:
 var doc *site.Document
 var c *Content
 // returns an error if it cannot parse or if the type is invalid
-err := doc.Content.As(&c)
+err := doc.Content.As(c)
 if err != nil {
     panic(err)
 }

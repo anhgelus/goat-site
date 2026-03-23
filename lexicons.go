@@ -3,6 +3,7 @@ package site
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -23,9 +24,15 @@ const (
 	CollectionBlob = "blob"
 
 	// TimeFormat is the standard time format specified by the ATProto.
+	//
+	// See [ParseTime]
 	TimeFormat = "2006-01-02T15:04:05.000Z07:00"
 )
 
+// ParseTime returns a [time.Time] if it follows the standard time format specified by the ATProto.
+//
+// See [TimeFormat].
+// Fallback to [time.RFC3339] if it doesn't work.
 func ParseTime(raw string) (t time.Time, err error) {
 	t, err = time.Parse(TimeFormat, raw)
 	if err != nil {
@@ -33,6 +40,19 @@ func ParseTime(raw string) (t time.Time, err error) {
 	}
 	return
 }
+
+type ErrInvalidType struct {
+	expected, got string
+}
+
+func (err ErrInvalidType) Error() string {
+	return fmt.Sprintf("invalid collection type: expected %s, got %s", err.expected, err.got)
+}
+
+var (
+	ErrRecordAlreadyParsed = errors.New("record already parsed")
+	ErrNoContent           = errors.New("no content")
+)
 
 // RecordJSON is used to encode and to decode [Record] from JSON.
 type RecordJSON struct {
@@ -47,28 +67,45 @@ type RecordJSON struct {
 	Raw []byte
 }
 
-func (l *RecordJSON) MarshalJSON() ([]byte, error) {
-	if l.Record == nil {
-		return l.Raw, nil
+// As unmarshals the [RecordJSON] as the provided [Record].
+//
+// [ErrRecordAlreadyParsed] if the [Record] was already parsed (stored in [RecordJSON.Record]).
+// [ErrNoContent] if [RecordJSON.Raw] is nil.
+func (r *RecordJSON) As(rec Record) error {
+	if r.Record != nil {
+		return ErrRecordAlreadyParsed
 	}
-	mp, err := l.MarshalMap()
+	if r.Raw == nil {
+		return ErrNoContent
+	}
+	if r.Type != rec.Type() {
+		return ErrInvalidType{r.Type, rec.Type()}
+	}
+	return json.Unmarshal(r.Raw, rec)
+}
+
+func (r *RecordJSON) MarshalJSON() ([]byte, error) {
+	if r.Record == nil {
+		return r.Raw, nil
+	}
+	mp, err := r.MarshalMap()
 	if err != nil {
 		return nil, err
 	}
-	mp["$type"] = l.Record.Type()
+	mp["$type"] = r.Record.Type()
 	return json.Marshal(mp)
 }
 
-func (l *RecordJSON) MarshalMap() (mp map[string]any, err error) {
-	if l.Record == nil {
-		err = json.Unmarshal(l.Raw, &mp)
+func (r *RecordJSON) MarshalMap() (mp map[string]any, err error) {
+	if r.Record == nil {
+		err = json.Unmarshal(r.Raw, &mp)
 		return
 	}
-	mp, err = MarshalToMap(l.Record)
+	mp, err = MarshalToMap(r.Record)
 	return
 }
 
-func (l *RecordJSON) UnmarshalJSON(b []byte) error {
+func (r *RecordJSON) UnmarshalJSON(b []byte) error {
 	var v struct {
 		Type string `json:"$type"`
 	}
@@ -78,25 +115,25 @@ func (l *RecordJSON) UnmarshalJSON(b []byte) error {
 	}
 	switch v.Type {
 	case CollectionPublication:
-		l.Record = &Publication{}
+		r.Record = &Publication{}
 	case CollectionDocument:
-		l.Record = &Document{}
+		r.Record = &Document{}
 	case CollectionSubscription:
-		l.Record = &Subscription{}
+		r.Record = &Subscription{}
 	case CollectionThemeBasic:
-		l.Record = &Theme{}
+		r.Record = &Theme{}
 	case CollectionThemeColorRGB:
-		l.Record = &RGB{}
+		r.Record = &RGB{}
 	case CollectionThemeColorRGBA:
-		l.Record = &RGBA{}
+		r.Record = &RGBA{}
 	case CollectionBlob:
-		l.Record = &Blob{}
+		r.Record = &Blob{}
 	default:
-		l.Raw = b
-		l.Type = v.Type
+		r.Raw = b
+		r.Type = v.Type
 		return nil
 	}
-	return json.Unmarshal(b, l.Record)
+	return json.Unmarshal(b, r.Record)
 }
 
 // Blob represents an ATProto `blob` type.
@@ -133,14 +170,6 @@ func (b *Blob) UnmarshalJSON(data []byte) error {
 	*b = Blob(v.t)
 	b.CID = v.Ref.Link
 	return nil
-}
-
-type ErrInvalidType struct {
-	expected, got string
-}
-
-func (err ErrInvalidType) Error() string {
-	return fmt.Sprintf("invalid collection type: expected %s, got %s", err.expected, err.got)
 }
 
 // MaxItemsPerList is the number of items per list call.
