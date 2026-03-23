@@ -3,6 +3,7 @@ package site_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
@@ -86,7 +87,7 @@ func TestPublication_JSON(t *testing.T) {
 	if pub.Name != "pckt - Dev Journal" {
 		t.Errorf("invalid name: %s", pub.Name)
 	}
-	if pub.URL != "https://devlog.pckt.blog" {
+	if pub.URL.String() != "https://devlog.pckt.blog" {
 		t.Errorf("invalid url: %s", pub.URL)
 	}
 	if *pub.Description != "the latest and greatest from pckt !" {
@@ -162,6 +163,10 @@ func getClient(t *testing.T, test string, uri *syntax.ATURI, client **lexutil.Le
 	return *uri, **client
 }
 
+func httpClient(client lexutil.LexClient) *http.Client {
+	return client.(*atclient.APIClient).Client
+}
+
 func TestGetPublication(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -207,5 +212,23 @@ func TestPublicationVerification(t *testing.T) {
 	uri = site.GetPublicationVerificationURI("path/to/publication")
 	if uri != "/.well-known/site.standard.publication/path/to/publication" {
 		t.Errorf("invalid uri: %s", uri)
+	}
+}
+
+func TestPublication_Verify(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	id, client := getClient(t, testPub, &pubURI, &pubClient)
+	pub, err := site.GetPublication(context.Background(), client, id.Authority(), id.RecordKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := pub.Verify(context.Background(), httpClient(client), id.Authority(), id.RecordKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !v {
+		t.Errorf("cannot verify %s", id)
 	}
 }

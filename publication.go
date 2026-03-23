@@ -2,8 +2,11 @@ package site
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -22,7 +25,7 @@ type Publication struct {
 	// Base URL of the [Publication].
 	// This value will be combined with the [Document.Path] to construct a full URL for the document.
 	// Avoid trailing slashes.
-	URL string `json:"url"`
+	URL *url.URL `json:"-"`
 	// Name of the [Publication].
 	// Max length: 5000.
 	// Max graphemes: 500.
@@ -46,9 +49,47 @@ func (p *Publication) Type() string {
 
 func (p *Publication) MarshalMap() (map[string]any, error) {
 	type t Publication
-	pp := t(*p)
-	pp.URL = strings.TrimSuffix(pp.URL, "/")
+	pp := struct {
+		t
+		URL string `json:"url"`
+	}{t(*p), strings.TrimSuffix(p.URL.String(), "/")}
 	return MarshalToMap(pp)
+}
+
+func (p *Publication) UnmarshalJSON(b []byte) error {
+	type t Publication
+	var pp struct {
+		t
+		URL string `json:"url"`
+	}
+	err := json.Unmarshal(b, &pp)
+	if err != nil {
+		return err
+	}
+	*p = Publication(pp.t)
+	p.URL, err = url.Parse(pp.URL)
+	if err != nil {
+		return err
+	}
+	p.URL.Path = strings.TrimSuffix(p.URL.Path, "/")
+	return nil
+}
+
+// Verify the [Publication].
+func (p *Publication) Verify(ctx context.Context, client *http.Client, repo syntax.AtIdentifier, rkey syntax.RecordKey) (bool, error) {
+	req, err := http.NewRequest(http.MethodGet, p.URL.String()+GetPublicationVerificationURI(p.URL.Path), nil)
+	if err != nil {
+		return false, err
+	}
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil {
+		return false, err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+	return string(b) == getPublicationVerification(repo, rkey), nil
 }
 
 // Preferences of the [Publication].
@@ -89,12 +130,17 @@ func DeletePublication(ctx context.Context, client lexutil.LexClient, repo synta
 	return deleteRecord(ctx, client, CollectionPublication, repo, rkey)
 }
 
+// getPublicationVerification returns the string used during the verification of the [Publication].
+func getPublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) string {
+	return createAtURI(repo, CollectionPublication, rkey)
+}
+
 // HandlePublicationVerification returns an [http.Handler] used during the verification of the [Publication].
 //
 // See [GetPublicationVerificationURI].
 func HandlePublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, createAtURI(repo, CollectionPublication, rkey))
+		fmt.Fprint(w, getPublicationVerification(repo, rkey))
 	})
 }
 
