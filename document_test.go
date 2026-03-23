@@ -57,7 +57,7 @@ func TestDocument_JSON(t *testing.T) {
 	t.Log(string(b))
 }
 
-const testDoc = "at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.document/3mhm4obhnx22y"
+const testDoc = "at://did:plc:zcanytzlaumjwgaopolw6wes/site.standard.document/3mhmdp3qobs2o"
 
 var (
 	docURI    syntax.ATURI

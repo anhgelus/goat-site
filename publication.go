@@ -2,6 +2,8 @@ package site
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -85,4 +87,21 @@ func UpdatePublication(ctx context.Context, client lexutil.LexClient, repo synta
 // DeletePublication in a repo with the given rkey.
 func DeletePublication(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
 	return deleteRecord(ctx, client, CollectionPublication, repo, rkey)
+}
+
+// HandlePublicationVerification returns an [http.Handler] used during the verification of the [Publication].
+//
+// See [GetPublicationVerificationURI].
+func HandlePublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "at://%s/%s/%s", repo, CollectionPublication, rkey)
+	})
+}
+
+// GetPublicationVerificationURI returns the URI called during the verification of the [Publication].
+// Path must be empty if the [Publication] is located at the domain root.
+//
+// See [HandlePublicationVerification].
+func GetPublicationVerificationURI(path string) string {
+	return "/.well-known/" + CollectionPublication + path
 }
