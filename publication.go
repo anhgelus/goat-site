@@ -94,7 +94,7 @@ func DeletePublication(ctx context.Context, client lexutil.LexClient, repo synta
 // See [GetPublicationVerificationURI].
 func HandlePublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "at://%s/%s/%s", repo, CollectionPublication, rkey)
+		fmt.Fprint(w, createAtURI(repo, CollectionPublication, rkey))
 	})
 }
 

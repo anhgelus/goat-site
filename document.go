@@ -3,6 +3,8 @@ package site
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
@@ -133,4 +135,11 @@ func UpdateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.A
 // DeleteDocument in a repo with the given rkey.
 func DeleteDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
 	return deleteRecord(ctx, client, CollectionDocument, repo, rkey)
+}
+
+// GetDocumentVerificationTag returns the HTML link tag checked during the verification of the [Document].
+func GetDocumentVerificationTag(repo syntax.AtIdentifier, rkey syntax.RecordKey) template.HTML {
+	return template.HTML(
+		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, createAtURI(repo, CollectionDocument, rkey)),
+	)
 }

@@ -264,3 +264,8 @@ func deleteRecord(ctx context.Context, client lexutil.LexClient, collection stri
 	})
 	return err
 }
+
+// createAtURI returns a valid [syntax.ATURI].
+func createAtURI(repo syntax.AtIdentifier, collection string, rkey syntax.RecordKey) string {
+	return fmt.Sprintf("at://%s/%s/%s", repo, collection, rkey)
+}
