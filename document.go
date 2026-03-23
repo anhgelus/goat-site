@@ -139,6 +139,8 @@ func DeleteDocument(ctx context.Context, client lexutil.LexClient, repo syntax.A
 
 // GetDocumentVerificationTag returns the HTML link tag checked during the verification of the [Document].
 func GetDocumentVerificationTag(repo syntax.AtIdentifier, rkey syntax.RecordKey) template.HTML {
+	// We don't use /> to end the tag, because it is only valid for HTML5 and only required for XHTML.
+	// See https://blog.novalistic.com/archives/2017/08/optional-end-tags-in-html/
 	return template.HTML(
 		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, createAtURI(repo, CollectionDocument, rkey)),
 	)
