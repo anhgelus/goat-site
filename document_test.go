@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
@@ -79,7 +79,7 @@ const testDoc = "at://did:plc:zcanytzlaumjwgaopolw6wes/site.standard.document/3m
 
 var (
 	docURI    syntax.ATURI
-	docClient *lexutil.LexClient
+	docClient *atclient.APIClient
 )
 
 func TestGetDocument(t *testing.T) {
@@ -137,7 +137,7 @@ func TestDocument_Verify(t *testing.T) {
 	}
 	valid, err := doc.Verify(
 		context.Background(),
-		httpClient(client),
+		client.Client,
 		pubURL,
 		uri.Authority(),
 		uri.RecordKey(),

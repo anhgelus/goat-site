@@ -27,7 +27,29 @@ You can get, list, create, update or delete them with functions:
 - `UpdateRecord[*site.Subscription]` to update a subscription;
 - `DeleteRecord[*site.Publication]` to delete a publication.
 
-You can [verify](https://standard.site/docs/verification/) a publication with `Publication.Verify`.
+You can [verify](https://standard.site/docs/verification/) a publication with `Publication.Verify` and a document with
+`Document.Verify`:
+```go
+var pub *site.Publication
+var client *atclient.APIClient
+valid, err := pub.Verify(context.Background(), client, "did:plc:123", "pub_rkey")
+if err != nil {
+    panic(err)
+}
+if !valid {
+    println("invalid publication :(")
+}
+
+var doc *site.Document
+url, err := doc.PublicationURL(context.Background(), client.Client)
+if err != nil {
+    panic(err)
+}
+valid, err = doc.Verify(context.Background(), client, "did:plc:123", "doc_rkey")
+if !valid {
+    panic("invalid document :(")
+}
+```
 
 ## Creating custom records
 

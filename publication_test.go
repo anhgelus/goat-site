@@ -3,13 +3,11 @@ package site_test
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"testing"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
@@ -134,10 +132,10 @@ const testPub = "at://did:plc:revjuqmkvrw6fnkxppqtszpv/site.standard.publication
 
 var (
 	pubURI    syntax.ATURI
-	pubClient *lexutil.LexClient
+	pubClient *atclient.APIClient
 )
 
-func getClient(t *testing.T, test string, uri *syntax.ATURI, client **lexutil.LexClient) (syntax.ATURI, lexutil.LexClient) {
+func getClient(t *testing.T, test string, uri *syntax.ATURI, client **atclient.APIClient) (syntax.ATURI, *atclient.APIClient) {
 	var err error
 	defer func() {
 		if err == nil {
@@ -145,7 +143,7 @@ func getClient(t *testing.T, test string, uri *syntax.ATURI, client **lexutil.Le
 		}
 	}()
 	if *client != nil {
-		return *uri, **client
+		return *uri, *client
 	}
 	dir := identity.DefaultDirectory()
 	*uri, err = syntax.ParseATURI(test)
@@ -158,13 +156,8 @@ func getClient(t *testing.T, test string, uri *syntax.ATURI, client **lexutil.Le
 		t.Fatal(err)
 	}
 	t.Log("using", id.PDSEndpoint(), "for", test)
-	c := lexutil.LexClient(atclient.NewAPIClient(id.PDSEndpoint()))
-	*client = &c
-	return *uri, **client
-}
-
-func httpClient(client lexutil.LexClient) *http.Client {
-	return client.(*atclient.APIClient).Client
+	*client = atclient.NewAPIClient(id.PDSEndpoint())
+	return *uri, *client
 }
 
 func TestGetPublication(t *testing.T) {
@@ -224,7 +217,7 @@ func TestPublication_Verify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v, err := pub.Verify(context.Background(), httpClient(client), id.Authority(), id.RecordKey())
+	v, err := pub.Verify(context.Background(), client.Client, id.Authority(), id.RecordKey())
 	if err != nil {
 		t.Fatal(err)
 	}
