@@ -172,7 +172,7 @@ func TestGetPublication(t *testing.T) {
 		t.Skip()
 	}
 	uri, client := getClient(t, testPub, &pubURI, &pubClient)
-	pub, err := site.GetPublication(context.Background(), client, uri.Authority(), uri.RecordKey())
+	pub, err := site.GetRecord[*site.Publication](context.Background(), client, uri.Authority(), uri.RecordKey())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestListPublications(t *testing.T) {
 		t.Skip()
 	}
 	uri, client := getClient(t, testPub, &pubURI, &pubClient)
-	pubs, _, err := site.ListPublications(context.Background(), client, uri.Authority(), "", false)
+	pubs, _, err := site.ListRecords[*site.Publication](context.Background(), client, uri.Authority(), "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +220,7 @@ func TestPublication_Verify(t *testing.T) {
 		t.Skip()
 	}
 	id, client := getClient(t, testPub, &pubURI, &pubClient)
-	pub, err := site.GetPublication(context.Background(), client, id.Authority(), id.RecordKey())
+	pub, err := site.GetRecord[*site.Publication](context.Background(), client, id.Authority(), id.RecordKey())
 	if err != nil {
 		t.Fatal(err)
 	}

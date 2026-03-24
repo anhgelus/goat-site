@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
 const CollectionPublication = CollectionBase + ".publication"
@@ -96,38 +95,6 @@ func (p *Publication) Verify(ctx context.Context, client *http.Client, repo synt
 type Preferences struct {
 	// ShowInDiscover decides whether the [Publication] should appear in discovery feeds.
 	ShowInDiscover bool `json:"showInDiscover"`
-}
-
-// GetPublication returns the [Publication] in the repo associated with the rkey.
-// Automatically uses the latest CID.
-func GetPublication(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) (*Publication, error) {
-	return get[*Publication](ctx, client, CollectionPublication, repo, rkey)
-}
-
-// ListPublications returns all the [Publication]s stored in the repo and the cursor.
-//
-// See [MaxItemsPerList].
-func ListPublications(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, cursor string, reverse bool) ([]*Publication, *string, error) {
-	return listRecord[*Publication](ctx, client, CollectionPublication, repo, cursor, reverse)
-}
-
-// CreatePublication in a repo with the given rkey.
-// Always tries to validate the [Publication] against the lexicon saved.
-//
-// Rkey can be nil.
-func CreatePublication(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey *syntax.RecordKey, pub *Publication) (*Result, error) {
-	return createRecord(ctx, client, CollectionPublication, repo, rkey, pub)
-}
-
-// UpdatePublication in a repo with the given rkey.
-// Always tries to validate the [Publication] against the lexicon saved.
-func UpdatePublication(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey, pub *Publication) (*Result, error) {
-	return updateRecord(ctx, client, CollectionPublication, repo, rkey, pub)
-}
-
-// DeletePublication in a repo with the given rkey.
-func DeletePublication(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
-	return deleteRecord(ctx, client, CollectionPublication, repo, rkey)
 }
 
 // getPublicationVerification returns the string used during the verification of the [Publication].

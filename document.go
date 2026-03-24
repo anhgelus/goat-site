@@ -1,7 +1,6 @@
 package site
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -9,7 +8,6 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
 const CollectionDocument = CollectionBase + ".document"
@@ -103,38 +101,6 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 	}
 	*d = Document(v.t)
 	return nil
-}
-
-// GetDocument returns the [Document] in the repo associated with the rkey.
-// Automatically uses the latest CID.
-func GetDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) (*Document, error) {
-	return get[*Document](ctx, client, CollectionDocument, repo, rkey)
-}
-
-// ListDocuments returns all the [Document]s stored in the repo and the cursor.
-//
-// See [MaxItemsPerList].
-func ListDocuments(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, cursor string, reverse bool) ([]*Document, *string, error) {
-	return listRecord[*Document](ctx, client, CollectionDocument, repo, cursor, reverse)
-}
-
-// CreateDocument in a repo with the given rkey.
-// Always tries to validate the [Document] against the lexicon saved.
-//
-// Rkey can be nil.
-func CreateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey *syntax.RecordKey, doc *Document) (*Result, error) {
-	return createRecord(ctx, client, CollectionDocument, repo, rkey, doc)
-}
-
-// UpdateDocument in a repo with the given rkey.
-// Always tries to validate the [Document] against the lexicon saved.
-func UpdateDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey, doc *Document) (*Result, error) {
-	return updateRecord(ctx, client, CollectionDocument, repo, rkey, doc)
-}
-
-// DeleteDocument in a repo with the given rkey.
-func DeleteDocument(ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
-	return deleteRecord(ctx, client, CollectionDocument, repo, rkey)
 }
 
 // GetDocumentVerificationTag returns the HTML link tag checked during the verification of the [Document].

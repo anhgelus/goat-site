@@ -87,7 +87,7 @@ func TestGetDocument(t *testing.T) {
 		t.Skip()
 	}
 	uri, client := getClient(t, testDoc, &docURI, &docClient)
-	doc, err := site.GetDocument(context.Background(), client, uri.Authority(), uri.RecordKey())
+	doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestListDocuments(t *testing.T) {
 		t.Skip()
 	}
 	uri, client := getClient(t, testDoc, &docURI, &docClient)
-	docs, _, err := site.ListDocuments(context.Background(), client, uri.Authority(), "", false)
+	docs, _, err := site.ListRecords[*site.Document](context.Background(), client, uri.Authority(), "", false)
 	if err != nil {
 		t.Fatal(err)
 	}

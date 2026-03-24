@@ -20,13 +20,12 @@ Each [Standard.site lexicon](https://standard.site/#definitions) is implemented:
 
 These types implement `Record`, an interface describing records.
 
-You can get, list, create, update or delete them with functions.
-Each function starts with the action followed by the lexicon's name, e.g.,
-- `GetPublication` to get a publication;
-- `ListDocuments` to list documents;
-- `CreateDocument` to create a new document.
-
-Currently, functions related to `Subscription` are not implemented.
+You can get, list, create, update or delete them with functions:
+- `GetRecord[*site.Publication]` to get a publication;
+- `ListRecords[*site.Document]` to list documents;
+- `CreateRecord[*site.Document]` to create a new document;
+- `UpdateRecord[*site.Subscription]` to update a subscription;
+- `DeleteRecord[*site.Publication]` to delete a publication.
 
 You can [verify](https://standard.site/docs/verification/) a publication with `Publication.Verify`.
 

@@ -77,6 +77,14 @@ func AsJSON(r Record) *RecordJSON {
 	return &RecordJSON{Record: r}
 }
 
+// GetType returns the type associated with the [RecordJSON].
+func (r *RecordJSON) GetType() string {
+	if r.Record != nil {
+		return r.Record.Type()
+	}
+	return r.Type
+}
+
 // As unmarshals the [RecordJSON] as the provided [Record].
 //
 // [ErrRecordAlreadyParsed] if the [Record] was already parsed (stored in [RecordJSON.Record]).
@@ -193,11 +201,13 @@ type Result struct {
 	Commit           *agnostic.RepoDefs_CommitMeta
 }
 
-// get returns the T in the repo associated with the rkey.
+// GetRecord returns the [Record] in the repo associated with the rkey.
 // Automatically uses the latest CID.
-func get[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey) (t T, err error) {
+//
+// Returns [ErrInvalidType] if the [Record] got doesn't have a valid type.
+func GetRecord[T Record](ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) (t T, err error) {
 	var rec *agnostic.RepoGetRecord_Output
-	rec, err = agnostic.RepoGetRecord(ctx, client, "", collection, repo.String(), rkey.String())
+	rec, err = agnostic.RepoGetRecord(ctx, client, "", t.Type(), repo.String(), rkey.String())
 	if err != nil {
 		return
 	}
@@ -206,22 +216,21 @@ func get[T Record](ctx context.Context, client lexutil.LexClient, collection str
 	if err != nil {
 		return
 	}
-	if v.Record == nil {
-		err = ErrInvalidType{collection, v.Type}
-		return
-	}
-	if v.Record.Type() != collection {
-		err = ErrInvalidType{collection, v.Record.Type()}
+	if v.GetType() != t.Type() {
+		err = ErrInvalidType{t.Type(), v.Type}
 		return
 	}
 	return v.Record.(T), nil
 }
 
-// listRecord returns all the Ts stored in the repo and the cursor.
+// ListRecords returns all the [Record]s stored in the repo and the cursor.
+//
+// Returns [ErrInvalidType] if a [Record] got doesn't have a valid type.
 //
 // See [MaxItemsPerList].
-func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, cursor string, reverse bool) ([]T, *string, error) {
-	rec, err := agnostic.RepoListRecords(ctx, client, collection, cursor, MaxItemsPerList, repo.String(), reverse)
+func ListRecords[T Record](ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, cursor string, reverse bool) ([]T, *string, error) {
+	var t T
+	rec, err := agnostic.RepoListRecords(ctx, client, t.Type(), cursor, MaxItemsPerList, repo.String(), reverse)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,22 +243,19 @@ func listRecord[T Record](ctx context.Context, client lexutil.LexClient, collect
 		if err != nil {
 			return nil, nil, err
 		}
-		if v.Record == nil {
-			return nil, nil, ErrInvalidType{collection, v.Type}
-		}
-		if v.Record.Type() != collection {
-			return nil, nil, ErrInvalidType{collection, v.Record.Type()}
+		if v.GetType() != t.Type() {
+			return nil, nil, ErrInvalidType{t.Type(), v.Type}
 		}
 		docs[i] = v.Record.(T)
 	}
 	return docs[:i], rec.Cursor, nil
 }
 
-// createRecord a T in a repo with the given rkey.
-// Always tries to validate the [Document] against the lexicon saved.
+// CreateRecord in a repo with the given rkey.
+// Always tries to validate the [Record] against the lexicon saved.
 //
 // Rkey can be nil.
-func createRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey *syntax.RecordKey, v T) (*Result, error) {
+func CreateRecord[T Record](ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey *syntax.RecordKey, v T) (*Result, error) {
 	mp, err := MarshalToMap(AsJSON(v))
 	if err != nil {
 		return nil, err
@@ -261,7 +267,7 @@ func createRecord[T Record](ctx context.Context, client lexutil.LexClient, colle
 	}
 	t := true
 	out, err := agnostic.RepoCreateRecord(ctx, client, &agnostic.RepoCreateRecord_Input{
-		Collection: collection,
+		Collection: v.Type(),
 		Record:     mp,
 		Repo:       repo.String(),
 		Rkey:       cv,
@@ -273,16 +279,16 @@ func createRecord[T Record](ctx context.Context, client lexutil.LexClient, colle
 	return &Result{out.Uri, out.Cid, out.ValidationStatus, out.Commit}, nil
 }
 
-// updateRecord T in a repo with the given rkey.
-// Always tries to validate the [Document] against the lexicon saved.
-func updateRecord[T Record](ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey, v T) (*Result, error) {
+// UpdateRecord in a repo with the given rkey.
+// Always tries to validate the [Record] against the lexicon saved.
+func UpdateRecord[T Record](ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey, v T) (*Result, error) {
 	mp, err := MarshalToMap(AsJSON(v))
 	if err != nil {
 		return nil, err
 	}
 	t := true
 	out, err := agnostic.RepoPutRecord(ctx, client, &agnostic.RepoPutRecord_Input{
-		Collection: collection,
+		Collection: v.Type(),
 		Record:     mp,
 		Repo:       repo.String(),
 		Rkey:       rkey.String(),
@@ -295,10 +301,11 @@ func updateRecord[T Record](ctx context.Context, client lexutil.LexClient, colle
 	return &Result{out.Uri, out.Cid, out.ValidationStatus, out.Commit}, nil
 }
 
-// delete in a repo with the given rkey.
-func deleteRecord(ctx context.Context, client lexutil.LexClient, collection string, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
+// DeleteRecord in a repo with the given rkey.
+func DeleteRecord[T Record](ctx context.Context, client lexutil.LexClient, repo syntax.AtIdentifier, rkey syntax.RecordKey) error {
+	var t T
 	_, err := atproto.RepoDeleteRecord(ctx, client, &atproto.RepoDeleteRecord_Input{
-		Collection: collection,
+		Collection: t.Type(),
 		Repo:       repo.String(),
 		Rkey:       rkey.String(),
 	})
