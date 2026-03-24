@@ -3,125 +3,153 @@ package site_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"pgregory.net/rapid"
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
-const samplePub = `{
-  "$type": "site.standard.publication",
-  "basicTheme": {
-    "$type": "site.standard.theme.basic",
-    "accent": {
-      "$type": "site.standard.theme.color#rgb",
-      "b": 20,
-      "g": 105,
-      "r": 139
-    },
-    "accentForeground": {
-      "$type": "site.standard.theme.color#rgb",
-      "b": 204,
-      "g": 243,
-      "r": 255
-    },
-    "background": {
-      "$type": "site.standard.theme.color#rgb",
-      "b": 225,
-      "g": 249,
-      "r": 255
-    },
-    "foreground": {
-      "$type": "site.standard.theme.color#rgb",
-      "b": 32,
-      "g": 53,
-      "r": 74
-    }
-  },
-  "description": "the latest and greatest from pckt !",
-  "icon": {
-    "$type": "blob",
-	"ref": {
-      "$link": "bafkreia3gaejwdadslicpqbgtzitcysop7lhuyry6bjf6xlf5fe7jvvcdy"
-    },
-    "mimeType": "image/png",
-    "size": 8535
-  },
-  "name": "pckt - Dev Journal",
-  "preferences": {
-    "showInDiscover": true
-  },
-  "theme": {
-    "$type": "blog.pckt.theme",
-    "dark": {
-      "accent": "#ffc947",
-      "background": "#3d2a1a",
-      "link": "#ffe082",
-      "surfaceHover": "#4d3822",
-      "text": "#fff9e0"
-    },
-    "font": "sans",
-    "light": {
-      "accent": "#8b6914",
-      "background": "#fff9e1",
-      "link": "#d68910",
-      "surfaceHover": "#fff3cc",
-      "text": "#4a3520"
-    },
-    "transparency": 100
-  },
-  "url": "https://devlog.pckt.blog"
-}`
+func genBasicTheme(t *rapid.T) (*site.Theme, map[string]any) {
+	theme := new(site.Theme)
+	colors := func(base string, rgbP **site.RGB) map[string]any {
+		*rgbP = new(site.RGB)
+		rgb := *rgbP
+		rgb.Red = rapid.Uint8().Draw(t, base+"_r")
+		rgb.Green = rapid.Uint8().Draw(t, base+"_g")
+		rgb.Blue = rapid.Uint8().Draw(t, base+"_b")
+		return map[string]any{
+			"$type": site.CollectionThemeColorRGB,
+			"r":     rgb.Red,
+			"g":     rgb.Green,
+			"b":     rgb.Blue,
+		}
+	}
+	return theme, map[string]any{
+		"$type":            theme.Type(),
+		"accent":           colors("accent", &theme.Accent),
+		"accentForeground": colors("accentForeground", &theme.AccentForeground),
+		"foreground":       colors("foreground", &theme.Foreground),
+		"background":       colors("background", &theme.Background),
+	}
+}
+
+var rapidLowerRunes = rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz"))
+
+func genBlob(t *rapid.T, baseMime string) (*site.Blob, map[string]any) {
+	blob := &site.Blob{
+		CID: rapid.StringN(2, -1, 128).Draw(t, "blob_cid"),
+		MimeType: baseMime + "/" +
+			rapid.StringOfN(rapidLowerRunes, 2, 20, -1).Draw(t, "blob_mimeType"),
+		Size: rapid.UintMin(1).Draw(t, "blob_size"),
+	}
+	return blob, map[string]any{
+		"$type":    blob.Type(),
+		"ref":      map[string]any{"$link": blob.CID},
+		"mimeType": blob.MimeType,
+		"size":     blob.Size,
+	}
+}
+
+func genURL(t *rapid.T) string {
+	scheme := "http"
+	if rapid.Bool().Draw(t, "url_secure?") {
+		scheme += "s"
+	}
+	valid := rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
+	base := rapid.StringOfN(rapidLowerRunes, 1, -1, 64).Draw(t, "url_base")
+	tld := rapid.StringOfN(rapidLowerRunes, 2, -1, 10).Draw(t, "url_tld")
+	sub := rapid.StringOfN(rapidLowerRunes, -1, -1, 32).Draw(t, "url_sub")
+	var sb strings.Builder
+	sb.Grow(len(base) + len(tld) + len(sub) + len(scheme) + 5)
+	sb.WriteString(scheme)
+	sb.WriteString("://")
+	if sub != "" {
+		sb.WriteString(sub)
+		sb.WriteRune('.')
+	}
+	sb.WriteString(base)
+	sb.WriteRune('.')
+	sb.WriteString(tld)
+	path := rapid.StringOfN(valid, -1, -1, 64).Draw(t, "url_path")
+	if path != "" {
+		sb.Grow(len(path) + 1)
+		sb.WriteRune('/')
+		sb.WriteString(path)
+	}
+	return sb.String()
+}
 
 func TestPublication_JSON(t *testing.T) {
-	var v *site.RecordJSON
-	err := json.Unmarshal([]byte(samplePub), &v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pub := v.Record.(*site.Publication)
-	if pub.Name != "pckt - Dev Journal" {
-		t.Errorf("invalid name: %s", pub.Name)
-	}
-	if pub.URL.String() != "https://devlog.pckt.blog" {
-		t.Errorf("invalid url: %s", pub.URL)
-	}
-	if *pub.Description != "the latest and greatest from pckt !" {
-		t.Errorf("invalid description: %s", *pub.Description)
-	}
-	if pub.Icon.CID != "bafkreia3gaejwdadslicpqbgtzitcysop7lhuyry6bjf6xlf5fe7jvvcdy" {
-		t.Errorf("invalid Icon CID: %s", pub.Icon.CID)
-	}
-	if pub.Icon.MimeType != "image/png" {
-		t.Errorf("invalid Icon MimeType: %s", pub.Icon.MimeType)
-	}
-	if pub.Icon.Size != 8535 {
-		t.Errorf("invalid Icon Size: %d", pub.Icon.Size)
-	}
-	if !pub.Preferences.ShowInDiscover {
-		t.Errorf("invalid Preferences ShowInDiscover: %v", pub.Preferences.ShowInDiscover)
-	}
-	theme := pub.BasicTheme
-	if *theme.Accent != *site.NewRGB(139, 105, 20) {
-		t.Errorf("invalid theme accent color: %s", theme.Accent)
-	}
-	if *theme.AccentForeground != *site.NewRGB(255, 243, 204) {
-		t.Errorf("invalid theme accent foreground color: %s", theme.AccentForeground)
-	}
-	if *theme.Background != *site.NewRGB(255, 249, 225) {
-		t.Errorf("invalid theme background color: %s", theme.Background)
-	}
-	if *theme.Foreground != *site.NewRGB(74, 53, 32) {
-		t.Errorf("invalid theme foreground color: %s", theme.Foreground)
-	}
-
-	b, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(string(b))
+	rapid.Check(t, func(t *rapid.T) {
+		theme, themeRaw := genBasicTheme(t)
+		icon, iconRaw := genBlob(t, "image")
+		description := rapid.StringN(2, 3_000, 30_000).Draw(t, "description")
+		name := rapid.StringN(2, 500, 5_000).Draw(t, "name")
+		url := genURL(t)
+		showInDiscover := rapid.Bool().Draw(t, "showInDiscover")
+		input := map[string]any{
+			"$type":       site.CollectionPublication,
+			"basicTheme":  themeRaw,
+			"icon":        iconRaw,
+			"description": description,
+			"name":        name,
+			"url":         url,
+			"preferences": map[string]any{"showInDiscover": showInDiscover},
+		}
+		b, err := json.Marshal(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(string(b))
+		var v *site.RecordJSON
+		err = json.Unmarshal(b, &v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pub := v.Record.(*site.Publication)
+		if pub.Name != name {
+			t.Errorf("invalid name: %s, wanted %s", pub.Name, name)
+		}
+		if pub.URL.String() != url {
+			t.Errorf("invalid url: %s, wanted %s", pub.URL, url)
+		}
+		if *pub.Description != description {
+			t.Errorf("invalid description: %s, wanted %s", *pub.Description, description)
+		}
+		if pub.Icon.CID != icon.CID {
+			t.Errorf("invalid Icon CID: %s, wanted %s", pub.Icon.CID, icon.CID)
+		}
+		if pub.Icon.MimeType != icon.MimeType {
+			t.Errorf("invalid Icon MimeType: %s, wanted %s", pub.Icon.MimeType, icon.MimeType)
+		}
+		if pub.Icon.Size != icon.Size {
+			t.Errorf("invalid Icon Size: %d, wanted %d", pub.Icon.Size, icon.Size)
+		}
+		if pub.Preferences.ShowInDiscover != showInDiscover {
+			t.Errorf("invalid Preferences ShowInDiscover: %v", pub.Preferences.ShowInDiscover)
+		}
+		th := pub.BasicTheme
+		if *th.Accent != *theme.Accent {
+			t.Errorf("invalid theme accent color: %s, wanted %s", th.Accent, theme.Accent)
+		}
+		if *th.AccentForeground != *theme.AccentForeground {
+			t.Errorf("invalid theme accent foreground color: %s, wanted %s", th.AccentForeground, theme.AccentForeground)
+		}
+		if *th.Background != *theme.Background {
+			t.Errorf("invalid theme background color: %s, wanted %s", th.Background, theme.Background)
+		}
+		if *th.Foreground != *theme.Foreground {
+			t.Errorf("invalid theme foreground color: %s, wanted %s", th.Foreground, theme.Foreground)
+		}
+		b, err = json.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 // leaflet publication

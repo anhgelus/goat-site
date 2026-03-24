@@ -2,7 +2,11 @@ module tangled.org/anhgelus.world/goat-site
 
 go 1.25.0
 
-require github.com/bluesky-social/indigo v0.0.0-20260318212431-cbaa83aee9dd
+require (
+	github.com/bluesky-social/indigo v0.0.0-20260318212431-cbaa83aee9dd
+	golang.org/x/net v0.52.0
+	pgregory.net/rapid v1.2.0
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -28,7 +32,6 @@ require (
 	gitlab.com/yawning/secp256k1-voi v0.0.0-20230925100816-f2616030848b // indirect
 	gitlab.com/yawning/tuplehash v0.0.0-20230713102510-df83abbf9a02 // indirect
 	golang.org/x/crypto v0.49.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
