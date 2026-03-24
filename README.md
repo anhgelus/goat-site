@@ -94,3 +94,17 @@ func (c *Content) MarshalMap() (map[string]any, error) {
 // the future call to site.MarshalToMap on *Content 
 // will return map[string]any{"foo":"bar"}.
 ```
+
+## Extending lexicons
+
+Lexicons defined by Standard.site [can be extended](https://standard.site/docs/introduction/#design-philosophy).
+
+To extend a lexicon, you can create a new type and embed the base lexicon:
+```go
+type CustomPublication struct {
+    site.Publication
+    // your custom fields
+}
+```
+
+You can call any functions with this new lexicon: the embedded base lexicon already implements the `Record` interface!
