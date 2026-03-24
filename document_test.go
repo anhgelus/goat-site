@@ -31,7 +31,7 @@ func TestDocument_JSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := v.Record.(*site.Document)
-	if doc.Site != `at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.publication/3mhm4m2tets2y` {
+	if doc.Site.String() != `at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.publication/3mhm4m2tets2y` {
 		t.Errorf("invalid site: %s", doc.Site)
 	}
 	if doc.Title != `hello world` {
@@ -84,7 +84,7 @@ var (
 
 func TestGetDocument(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("not doing http requests in short")
 	}
 	uri, client := getClient(t, testDoc, &docURI, &docClient)
 	doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
@@ -98,7 +98,7 @@ func TestGetDocument(t *testing.T) {
 
 func TestListDocuments(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("not doing http requests in short")
 	}
 	uri, client := getClient(t, testDoc, &docURI, &docClient)
 	docs, _, err := site.ListRecords[*site.Document](context.Background(), client, uri.Authority(), "", false)

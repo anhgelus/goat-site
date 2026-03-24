@@ -183,7 +183,7 @@ func TestGetPublication(t *testing.T) {
 
 func TestListPublications(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("not doing http requests in short")
 	}
 	uri, client := getClient(t, testPub, &pubURI, &pubClient)
 	pubs, _, err := site.ListRecords[*site.Publication](context.Background(), client, uri.Authority(), "", false)
@@ -217,7 +217,7 @@ func TestPublicationVerification(t *testing.T) {
 
 func TestPublication_Verify(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("not doing http requests in short")
 	}
 	id, client := getClient(t, testPub, &pubURI, &pubClient)
 	pub, err := site.GetRecord[*site.Publication](context.Background(), client, id.Authority(), id.RecordKey())

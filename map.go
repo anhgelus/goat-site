@@ -95,7 +95,8 @@ func MarshalToMap(v any) (map[string]any, error) {
 			return nil, err
 		}
 		name := fieldType.Name
-		data := strings.Split(refType.Field(i).Tag.Get("json"), ",")
+		data := strings.Split(fieldType.Tag.Get("json"), ",")
+		data = append(data, strings.Split(fieldType.Tag.Get("map"), ",")...)
 		if len(data) > 0 {
 			if len(data[0]) > 0 {
 				name = data[0]

@@ -17,7 +17,7 @@ const CollectionDocument = CollectionBase + ".document"
 type Document struct {
 	// Site points to a [Publication] record `at://` or a [Publication.URL] `https://` for loose documents.
 	// Avoid trailing slashes.
-	Site string `json:"site"`
+	Site *URL `json:"site" map:"string"`
 	// Title of the [Document].
 	// Max length: 5000.
 	// Max graphemes: 500.
@@ -110,4 +110,9 @@ func GetDocumentVerificationTag(repo syntax.AtIdentifier, rkey syntax.RecordKey)
 	return template.HTML(
 		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, createAtURI(repo, CollectionDocument, rkey)),
 	)
+}
+
+// getPublicationVerification returns the string used during the verification of the [Publication].
+func getDocumentVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) string {
+	return createAtURI(repo, CollectionDocument, rkey)
 }
