@@ -72,7 +72,8 @@ func (c *Content) Type() string {
 }
 ```
 
-But if you use `site.GetDocument` to retrieve one, it will return a simple `site.Document` without your custom content!
+But if you use `site.GetRecord[*site.Document]` to retrieve one, it will return a simple `site.Document` without your 
+custom content!
 The `Document.Content` field is a `site.RecordJSON`, a wrapper.
 You can get the type of the content with `RecordJSON.Type` and the raw bytes with `RecordJSON.Raw`.
 You can also directly parse your `Content` with `RecordJSON.As`:
@@ -89,7 +90,7 @@ if err != nil {
 ### Marshal/Unmarshal
 
 When your record is sent, it is firstly marshaled to a map.
-We provide `site.MarshalToMap` which works like the JSON API:
+We provide `site.MarshalToMap` which works like the standard `encoding/json`:
 ```go
 var c *Content
 // mp is the map[string]any created
@@ -103,7 +104,18 @@ mp = map[string]any{"content": []string{}}
 ```
 
 It uses the `json` tag to determine how to marshal the content.
-It supports `omitempty`, `string` and embedded type.
+It supports `omitempty` and embedded type from the standard library.
+
+If you want to marshal your field into a string, you can set `string` in the field tag (with the key `map` here).
+It automatically calls the `String() string` method.
+```go
+type Content struct {
+    Hey *url.URL `json:"hey" map:"string"`
+}
+/*
+mp = map[string]any{"hey": "https://example.org/"}
+*/
+```
 
 If you are using complexe types, you may have to implement `json.Unmarshaler` to unmarshal from JSON and
 `site.MarshalerMap` to marshal to a map.
