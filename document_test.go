@@ -121,3 +121,31 @@ func TestDocumentVerification(t *testing.T) {
 		t.Errorf("invalid tag: %s", tag)
 	}
 }
+
+func TestDocument_Verify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("not doing http requests in short")
+	}
+	uri, client := getClient(t, testDoc, &docURI, &docClient)
+	doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pubURL, err := doc.PublicationURL(context.Background(), client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valid, err := doc.Verify(
+		context.Background(),
+		httpClient(client),
+		pubURL,
+		uri.Authority(),
+		uri.RecordKey(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !valid {
+		t.Errorf("cannot verify %s", uri)
+	}
+}

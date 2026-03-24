@@ -84,6 +84,7 @@ func (p *Publication) Verify(ctx context.Context, client *http.Client, repo synt
 	if err != nil {
 		return false, err
 	}
+	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return false, err

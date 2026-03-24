@@ -1,13 +1,19 @@
 package site
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"golang.org/x/net/html"
 )
 
 const CollectionDocument = CollectionBase + ".document"
@@ -101,6 +107,65 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 	}
 	*d = Document(v.t)
 	return nil
+}
+
+// PublicationURL returns the [url.URL] of the linked [Publication].
+//
+// Prefer using [GetRecord] if you plan to retrieve the record.
+// Under the hood, this method retrieves the [Publication] record if [Document.Site] is an [ATURL].
+func (d *Document) PublicationURL(ctx context.Context, client lexutil.LexClient) (*url.URL, error) {
+	if !d.Site.IsAT() {
+		return d.Site.URL(), nil
+	}
+	at := d.Site.AT()
+	pub, err := GetRecord[*Publication](ctx, client, at.Authority(), at.RecordKey())
+	if err != nil {
+		return nil, err
+	}
+	return pub.URL, nil
+}
+
+var ErrCannotVerifyWithNoPath = errors.New("cannot verify a document with no path")
+
+// Verify the [Document].
+func (d *Document) Verify(ctx context.Context, client *http.Client, pubURL *url.URL, repo syntax.AtIdentifier, rkey syntax.RecordKey) (bool, error) {
+	if d.Path == nil {
+		return false, ErrCannotVerifyWithNoPath
+	}
+	req, err := http.NewRequest(http.MethodGet, pubURL.String()+*d.Path, nil)
+	if err != nil {
+		return false, err
+	}
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return false, err
+	}
+	for node := range doc.Descendants() {
+		if node.Type == html.ElementNode && node.Data == "link" {
+			var rel string
+			var href string
+			for _, attr := range node.Attr {
+				switch attr.Key {
+				case "rel":
+					rel = attr.Val
+				case "href":
+					href = attr.Val
+				}
+				if rel != "" && rel != CollectionDocument {
+					break
+				}
+				if href == getDocumentVerification(repo, rkey) {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
 }
 
 // GetDocumentVerificationTag returns the HTML link tag checked during the verification of the [Document].
