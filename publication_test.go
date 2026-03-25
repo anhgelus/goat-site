@@ -38,10 +38,10 @@ func genBasicTheme(t *rapid.T) (*site.Theme, map[string]any) {
 func TestPublication_JSON(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		theme, themeRaw := genBasicTheme(t)
-		icon, iconRaw := genBlob(t, "image")
+		icon, iconRaw := genBlob(t, "image", "icon")
 		description := rapid.StringN(2, 3_000, 30_000).Draw(t, "description")
 		name := rapid.StringN(2, 500, 5_000).Draw(t, "name")
-		url := genURL(t)
+		url := genURL(t, "url")
 		showInDiscover := rapid.Bool().Draw(t, "showInDiscover")
 		input := map[string]any{
 			"$type":       site.CollectionPublication,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/identity"
@@ -12,14 +13,16 @@ import (
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
-var rapidLowerRunes = rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz"))
+var (
+	rapidLowerRunes = rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz"))
+)
 
-func genBlob(t *rapid.T, baseMime string) (*site.Blob, map[string]any) {
+func genBlob(t *rapid.T, baseMime, label string) (*site.Blob, map[string]any) {
 	blob := &site.Blob{
-		CID: rapid.StringN(2, -1, 128).Draw(t, "blob_cid"),
+		CID: rapid.StringN(2, -1, 128).Draw(t, label+"_cid"),
 		MimeType: baseMime + "/" +
-			rapid.StringOfN(rapidLowerRunes, 2, 20, -1).Draw(t, "blob_mimeType"),
-		Size: rapid.UintMin(1).Draw(t, "blob_size"),
+			rapid.StringOfN(rapidLowerRunes, 2, 20, -1).Draw(t, label+"_mimeType"),
+		Size: rapid.UintMin(1).Draw(t, label+"_size"),
 	}
 	return blob, map[string]any{
 		"$type":    blob.Type(),
@@ -29,15 +32,14 @@ func genBlob(t *rapid.T, baseMime string) (*site.Blob, map[string]any) {
 	}
 }
 
-func genURL(t *rapid.T) string {
+func genURL(t *rapid.T, label string) string {
 	scheme := "http"
-	if rapid.Bool().Draw(t, "url_secure?") {
+	if rapid.Bool().Draw(t, label+"_secure?") {
 		scheme += "s"
 	}
-	valid := rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
-	base := rapid.StringOfN(rapidLowerRunes, 1, -1, 64).Draw(t, "url_base")
-	tld := rapid.StringOfN(rapidLowerRunes, 2, -1, 10).Draw(t, "url_tld")
-	sub := rapid.StringOfN(rapidLowerRunes, -1, -1, 32).Draw(t, "url_sub")
+	base := rapid.StringOfN(rapidLowerRunes, 1, -1, 64).Draw(t, label+"_base")
+	tld := rapid.StringOfN(rapidLowerRunes, 2, -1, 10).Draw(t, label+"_tld")
+	sub := rapid.StringOfN(rapidLowerRunes, -1, -1, 32).Draw(t, label+"_sub")
 	var sb strings.Builder
 	sb.Grow(len(base) + len(tld) + len(sub) + len(scheme) + 5)
 	sb.WriteString(scheme)
@@ -49,13 +51,22 @@ func genURL(t *rapid.T) string {
 	sb.WriteString(base)
 	sb.WriteRune('.')
 	sb.WriteString(tld)
-	path := rapid.StringOfN(valid, -1, -1, 64).Draw(t, "url_path")
-	if path != "" {
-		sb.Grow(len(path) + 1)
-		sb.WriteRune('/')
+	path := genPath(t, label+"_path")
+	if path != "/" {
+		sb.Grow(len(path))
 		sb.WriteString(path)
 	}
 	return sb.String()
+}
+
+func genPath(t *rapid.T, label string) string {
+	valid := rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
+	return "/" + rapid.StringOfN(valid, -1, -1, 64).Draw(t, label)
+}
+
+func genRecordKey(t *rapid.T, label string) string {
+	valid := rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz0123456789"))
+	return rapid.StringOfN(valid, 1, -1, 128).Draw(t, label)
 }
 
 func getClient(t *testing.T, test string, uri *syntax.ATURI, client **atclient.APIClient) (syntax.ATURI, *atclient.APIClient) {
@@ -81,4 +92,12 @@ func getClient(t *testing.T, test string, uri *syntax.ATURI, client **atclient.A
 	t.Log("using", id.PDSEndpoint(), "for", test)
 	*client = atclient.NewAPIClient(id.PDSEndpoint())
 	return *uri, *client
+}
+
+func genDid(t *rapid.T, label string) string {
+	return "did:plc:" + rapid.StringOfN(rapidLowerRunes, 24, -1, 24).Draw(t, label)
+}
+
+func genTime(t *rapid.T, label string) time.Time {
+	return time.Unix(int64(rapid.Uint32().Draw(t, label)), 0)
 }

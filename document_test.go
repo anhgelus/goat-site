@@ -5,19 +5,15 @@ import (
 	"encoding/json"
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"pgregory.net/rapid"
 	site "tangled.org/anhgelus.world/goat-site"
 )
 
-const sampleDoc = `
-{"$type":"site.standard.document","bskyPostRef":{"cid":"bafyreidepvhssy3zglq3bo4nauszqhqmbk6lzzfay3r2nskvijyiewlr2u","commit":{"cid":"bafyreickwfv4p2jr6zvbdk6mldmddag2m6grpkbbvkvz57mvaqso5dpf5e","rev":"3mhm4oeyyzi2g"},"uri":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/app.bsky.feed.post/3mhm4oevhmk2d","validationStatus":"valid"},"content":{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]},"path":"/3mhm4obhnx22y","publishedAt":"2026-03-21T22:52:35.182Z","site":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.publication/3mhm4m2tets2y","tags":[],"title":"hello world"}
-`
-
 type content struct {
-	Pages []any `json:"pages"`
+	Pages any `json:"pages"`
 }
 
 func (c *content) Type() string {
@@ -25,54 +21,99 @@ func (c *content) Type() string {
 }
 
 func TestDocument_JSON(t *testing.T) {
-	var v *site.RecordJSON
-	err := json.Unmarshal([]byte(sampleDoc), &v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	doc := v.Record.(*site.Document)
-	if doc.Site.String() != `at://did:plc:jdhpqeb4cb4mng533dx56cbc/site.standard.publication/3mhm4m2tets2y` {
-		t.Errorf("invalid site: %s", doc.Site)
-	}
-	if doc.Title != `hello world` {
-		t.Errorf("invalid title: %s", doc.Title)
-	}
-	tt, _ := time.Parse(site.TimeFormat, "2026-03-21T22:52:35.182Z")
-	if !doc.PublishedAt.Equal(tt) {
-		t.Errorf("invalid publishedAt: %s", doc.PublishedAt.Format(site.TimeFormat))
-	}
-	if *doc.Path != `/3mhm4obhnx22y` {
-		t.Errorf("invalid path: %s", *doc.Path)
-	}
+	rapid.Check(t, func(t *rapid.T) {
+		var pubUrl string
+		if rapid.Bool().Draw(t, "url_at?") {
+			pubUrl = "at://" + genDid(t, "url_did") +
+				"/" + site.CollectionPublication +
+				"/" + genRecordKey(t, "url_record_key")
+		} else {
+			pubUrl = genURL(t, "url")
+		}
+		title := rapid.StringN(1, 500, 5_000).Draw(t, "title")
+		publishedAt := genTime(t, "published_at")
+		path := genPath(t, "path")
+		description := rapid.StringN(0, 3_000, 30_000).Draw(t, "description")
+		coverImage, coverImageRaw := genBlob(t, "image", "cover_image")
+		textContent := rapid.String().Draw(t, "text_content")
+		tags := rapid.SliceOfN(rapid.String(), 0, 1280).Draw(t, "tags")
+		updatedAt := genTime(t, "updated_at")
+		input := map[string]any{
+			"$type":       site.CollectionDocument,
+			"site":        pubUrl,
+			"title":       title,
+			"publishedAt": publishedAt,
+			"path":        path,
+			"description": description,
+			"coverImage":  coverImageRaw,
+			"content":     json.RawMessage(`{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]}`),
+			"textContent": textContent,
+			"bskyPostRef": json.RawMessage(`{"cid":"bafyreidepvhssy3zglq3bo4nauszqhqmbk6lzzfay3r2nskvijyiewlr2u","commit":{"cid":"bafyreickwfv4p2jr6zvbdk6mldmddag2m6grpkbbvkvz57mvaqso5dpf5e","rev":"3mhm4oeyyzi2g"},"uri":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/app.bsky.feed.post/3mhm4oevhmk2d","validationStatus":"valid"}`),
+			"tags":        tags,
+			"updatedAt":   updatedAt,
+		}
+		b, err := json.Marshal(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(string(b))
+		var v *site.RecordJSON
+		err = json.Unmarshal(b, &v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc := v.Record.(*site.Document)
+		if doc.Site.String() != pubUrl {
+			t.Errorf("invalid site: %s, wanted %s", doc.Site, pubUrl)
+		}
+		if doc.Title != title {
+			t.Errorf("invalid title: %s, wanted %s", doc.Title, title)
+		}
+		if !doc.PublishedAt.Equal(publishedAt) {
+			t.Errorf("invalid publishedAt: %s, wanted %s", doc.PublishedAt, publishedAt)
+		}
+		if doc.CoverImage.CID != coverImage.CID {
+			t.Errorf("invalid cover image CID: %s, wanted %s", doc.CoverImage.CID, coverImage.CID)
+		}
+		if doc.CoverImage.MimeType != coverImage.MimeType {
+			t.Errorf("invalid cover image MimeType: %s, wanted %s", doc.CoverImage.MimeType, coverImage.MimeType)
+		}
+		if doc.CoverImage.Size != coverImage.Size {
+			t.Errorf("invalid cover image Size: %d, wanted %d", doc.CoverImage.Size, coverImage.Size)
+		}
+		if *doc.Path != path {
+			t.Errorf("invalid path: %s, wanted %s", *doc.Path, path)
+		}
+		if doc.Content.Record != nil {
+			t.Errorf("invalid content lexicon: %v", doc.Content.Record)
+		} else {
+			if doc.Content.Type != `pub.leaflet.content` {
+				t.Errorf("invalid content type: %s", doc.Content.Type)
+			}
+			if !slices.Equal(doc.Content.Raw, []byte(`{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]}`)) {
+				t.Errorf("invalid content raw: %s", doc.Content.Raw)
+			}
+		}
+		if !slices.Equal(doc.Tags, tags) {
+			t.Errorf("invalid tags: %v, wanted %v", doc.Tags, tags)
+		}
 
-	if doc.Content.Record != nil {
-		t.Errorf("invalid content lexicon: %v", doc.Content.Record)
-	}
-	if doc.Content.Type != `pub.leaflet.content` {
-		t.Errorf("invalid content type: %s", doc.Content.Type)
-	}
-	if !slices.Equal(doc.Content.Raw, []byte(`{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]}`)) {
-		t.Errorf("invalid content raw: %s", doc.Content.Raw)
-	}
-	if len(doc.Tags) > 0 {
-		t.Errorf("invalid tags: %v", doc.Tags)
-	}
+		b, err = json.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(string(b))
 
-	b, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(string(b))
-
-	c := new(content)
-	err = doc.Content.As(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.Pages == nil {
-		t.Errorf("invalid content pages: nil")
-	}
-	t.Logf("%v", c.Pages)
+		c := new(content)
+		err = doc.Content.As(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.Pages == nil {
+			t.Errorf("invalid content pages: nil")
+		}
+		t.Logf("%v", c.Pages)
+	})
 }
 
 const testDoc = "at://did:plc:zcanytzlaumjwgaopolw6wes/site.standard.document/3mhmdp3qobs2o"
