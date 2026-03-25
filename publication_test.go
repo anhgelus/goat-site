@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/bluesky-social/indigo/atproto/atclient"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	"pgregory.net/rapid"
 	site "tangled.org/anhgelus.world/goat-site"
 )
@@ -104,28 +102,24 @@ func TestPublication_JSON(t *testing.T) {
 	})
 }
 
-// leaflet publication
-// const testPub = "at://did:plc:yk4dd2qkboz2yv6tpubpc6co/site.standard.publication/3m6zrpzbs3s2y"
-
-// pckt publication (because they do not use the preferred time format!)
-const testPub = "at://did:plc:revjuqmkvrw6fnkxppqtszpv/site.standard.publication/3md4kftpfxs2z"
-
-var (
-	pubURI    syntax.ATURI
-	pubClient *atclient.APIClient
-)
+var genPubAt = []string{
+	"at://did:plc:revjuqmkvrw6fnkxppqtszpv/site.standard.publication/3md4kftpfxs2z", // leaflet pub
+	"at://did:plc:yk4dd2qkboz2yv6tpubpc6co/site.standard.publication/3m6zrpzbs3s2y", // pckt pub
+}
 
 func TestGetPublication(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	uri, client := getClient(t, testPub, &pubURI, &pubClient)
-	pub, err := site.GetRecord[*site.Publication](context.Background(), client, uri.Authority(), uri.RecordKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pub == nil {
-		t.Errorf("pub is nil")
+	for _, uri := range genPubAt {
+		uri, client := getClient(t, uri)
+		pub, err := site.GetRecord[*site.Publication](context.Background(), client, uri.Authority(), uri.RecordKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pub == nil {
+			t.Errorf("pub is nil")
+		}
 	}
 }
 
@@ -133,17 +127,19 @@ func TestListPublications(t *testing.T) {
 	if testing.Short() {
 		t.Skip("not doing http requests in short")
 	}
-	uri, client := getClient(t, testPub, &pubURI, &pubClient)
-	pubs, _, err := site.ListRecords[*site.Publication](context.Background(), client, uri.Authority(), "", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pubs == nil {
-		t.Errorf("pubs is nil")
-	}
-	for i, pub := range pubs {
-		if pub == nil {
-			t.Errorf("pub %d is nil", i)
+	for _, uri := range genPubAt {
+		uri, client := getClient(t, uri)
+		pubs, _, err := site.ListRecords[*site.Publication](context.Background(), client, uri.Authority(), "", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pubs == nil {
+			t.Errorf("pubs is nil")
+		}
+		for i, pub := range pubs {
+			if pub == nil {
+				t.Errorf("pub %d is nil", i)
+			}
 		}
 	}
 }
@@ -167,16 +163,18 @@ func TestPublication_Verify(t *testing.T) {
 	if testing.Short() {
 		t.Skip("not doing http requests in short")
 	}
-	id, client := getClient(t, testPub, &pubURI, &pubClient)
-	pub, err := site.GetRecord[*site.Publication](context.Background(), client, id.Authority(), id.RecordKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-	v, err := pub.Verify(context.Background(), client.Client, id.Authority(), id.RecordKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !v {
-		t.Errorf("cannot verify %s", id)
+	for _, uri := range genPubAt {
+		id, client := getClient(t, uri)
+		pub, err := site.GetRecord[*site.Publication](context.Background(), client, id.Authority(), id.RecordKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		v, err := pub.Verify(context.Background(), client.Client, id.Authority(), id.RecordKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !v {
+			t.Errorf("cannot verify %s", id)
+		}
 	}
 }

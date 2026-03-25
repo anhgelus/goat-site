@@ -3,7 +3,6 @@ package site_test
 import (
 	"context"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
@@ -69,18 +68,9 @@ func genRecordKey(t *rapid.T, label string) string {
 	return rapid.StringOfN(valid, 1, -1, 128).Draw(t, label)
 }
 
-func getClient(t *testing.T, test string, uri *syntax.ATURI, client **atclient.APIClient) (syntax.ATURI, *atclient.APIClient) {
-	var err error
-	defer func() {
-		if err == nil {
-			t.Log(uri.Authority().String(), uri.RecordKey())
-		}
-	}()
-	if *client != nil {
-		return *uri, *client
-	}
+func getClient(t rapid.TB, test string) (syntax.ATURI, *atclient.APIClient) {
 	dir := identity.DefaultDirectory()
-	*uri, err = syntax.ParseATURI(test)
+	uri, err := syntax.ParseATURI(test)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,8 +80,9 @@ func getClient(t *testing.T, test string, uri *syntax.ATURI, client **atclient.A
 		t.Fatal(err)
 	}
 	t.Log("using", id.PDSEndpoint(), "for", test)
-	*client = atclient.NewAPIClient(id.PDSEndpoint())
-	return *uri, *client
+	client := atclient.NewAPIClient(id.PDSEndpoint())
+	t.Log(uri.Authority().String(), uri.RecordKey())
+	return uri, client
 }
 
 func genDid(t *rapid.T, label string) string {

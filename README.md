@@ -41,11 +41,11 @@ if !valid {
 }
 
 var doc *site.Document
-url, err := doc.PublicationURL(context.Background(), client.Client)
+pubUrl, err := doc.PublicationURL(context.Background(), client.Client)
 if err != nil {
     panic(err)
 }
-valid, err = doc.Verify(context.Background(), client, "did:plc:123", "doc_rkey")
+valid, err = doc.Verify(context.Background(), client, pubUrl, "did:plc:123", "doc_rkey")
 if !valid {
     panic("invalid document :(")
 }

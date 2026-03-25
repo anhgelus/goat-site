@@ -6,8 +6,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/bluesky-social/indigo/atproto/atclient"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	"pgregory.net/rapid"
 	site "tangled.org/anhgelus.world/goat-site"
 )
@@ -116,42 +114,45 @@ func TestDocument_JSON(t *testing.T) {
 	})
 }
 
-const testDoc = "at://did:plc:zcanytzlaumjwgaopolw6wes/site.standard.document/3mhmdp3qobs2o"
-
-var (
-	docURI    syntax.ATURI
-	docClient *atclient.APIClient
-)
+var genDocAt = []string{
+	"at://did:plc:zcanytzlaumjwgaopolw6wes/site.standard.document/3mhmdp3qobs2o", // leaflet doc
+	"at://did:plc:revjuqmkvrw6fnkxppqtszpv/site.standard.document/3mbfqhezge25u", // pckt doc
+}
 
 func TestGetDocument(t *testing.T) {
 	if testing.Short() {
 		t.Skip("not doing http requests in short")
 	}
-	uri, client := getClient(t, testDoc, &docURI, &docClient)
-	doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
-	if err != nil {
-		t.Fatal(err)
+	for _, uri := range genDocAt {
+		uri, client := getClient(t, uri)
+		doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if doc == nil {
+			t.Errorf("doc is nil")
+		}
 	}
-	if doc == nil {
-		t.Errorf("doc is nil")
-	}
+
 }
 
 func TestListDocuments(t *testing.T) {
 	if testing.Short() {
 		t.Skip("not doing http requests in short")
 	}
-	uri, client := getClient(t, testDoc, &docURI, &docClient)
-	docs, _, err := site.ListRecords[*site.Document](context.Background(), client, uri.Authority(), "", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if docs == nil {
-		t.Errorf("docs is nil")
-	}
-	for i, doc := range docs {
-		if doc == nil {
-			t.Errorf("doc %d is nil", i)
+	for _, uri := range genDocAt {
+		uri, client := getClient(t, uri)
+		docs, _, err := site.ListRecords[*site.Document](context.Background(), client, uri.Authority(), "", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if docs == nil {
+			t.Errorf("docs is nil")
+		}
+		for i, doc := range docs {
+			if doc == nil {
+				t.Errorf("doc %d is nil", i)
+			}
 		}
 	}
 }
@@ -167,26 +168,28 @@ func TestDocument_Verify(t *testing.T) {
 	if testing.Short() {
 		t.Skip("not doing http requests in short")
 	}
-	uri, client := getClient(t, testDoc, &docURI, &docClient)
-	doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubURL, err := doc.PublicationURL(context.Background(), client)
-	if err != nil {
-		t.Fatal(err)
-	}
-	valid, err := doc.Verify(
-		context.Background(),
-		client.Client,
-		pubURL,
-		uri.Authority(),
-		uri.RecordKey(),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !valid {
-		t.Errorf("cannot verify %s", uri)
+	for _, uri := range genDocAt {
+		uri, client := getClient(t, uri)
+		doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		pubURL, err := doc.PublicationURL(context.Background(), client)
+		if err != nil {
+			t.Fatal(err)
+		}
+		valid, err := doc.Verify(
+			context.Background(),
+			client.Client,
+			pubURL,
+			uri.Authority(),
+			uri.RecordKey(),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !valid {
+			t.Errorf("cannot verify %s", uri)
+		}
 	}
 }
