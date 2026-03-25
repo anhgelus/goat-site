@@ -43,6 +43,24 @@ func (err ErrInvalidType) Error() string {
 	return fmt.Sprintf("invalid collection type: expected %s, got %s", err.expected, err.got)
 }
 
+func (err ErrInvalidType) As(target any) bool {
+	it, ok := target.(*ErrInvalidType)
+	if !ok {
+		return false
+	}
+	*it = ErrInvalidType{err.expected, err.got}
+	return true
+}
+
+func (err ErrInvalidType) Is(e error) bool {
+	var it ErrInvalidType
+	ok := errors.As(e, &it)
+	if !ok {
+		return false
+	}
+	return it.expected == err.expected && it.got == err.got
+}
+
 var (
 	ErrRecordAlreadyParsed = errors.New("record already parsed")
 	ErrNoContent           = errors.New("no content")
