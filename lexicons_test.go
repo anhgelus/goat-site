@@ -2,6 +2,8 @@ package site_test
 
 import (
 	"context"
+	"encoding/json"
+	"testing"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
@@ -49,4 +51,35 @@ func getClient(t rapid.TB, test string) (syntax.ATURI, *atclient.APIClient) {
 
 func genTime(t *rapid.T, label string) time.Time {
 	return time.Unix(int64(rapid.Uint32().Draw(t, label)), 0)
+}
+
+func TestBlob_JSON(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		base := rapid.StringN(1, -1, 10).Draw(t, "mimeType")
+		blob, blobRaw := genBlob(t, base, "blob")
+		b, err := json.Marshal(blobRaw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var v *site.RecordJSON
+		err = json.Unmarshal(b, &v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bl := v.Record.(*site.Blob)
+		if bl.CID != blob.CID {
+			t.Errorf("invalid CID: %s, wanted %s", bl.CID, blob.CID)
+		}
+		if bl.MimeType != blob.MimeType {
+			t.Errorf("invalid mimeType: %s, wanted %s", bl.MimeType, blob.MimeType)
+		}
+		if bl.Size != blob.Size {
+			t.Errorf("invalid size: %d, wanted %d", bl.Size, blob.Size)
+		}
+		b, err = json.Marshal(bl)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(string(b))
+	})
 }

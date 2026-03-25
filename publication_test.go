@@ -70,14 +70,8 @@ func TestPublication_JSON(t *testing.T) {
 		if *pub.Description != description {
 			t.Errorf("invalid description: %s, wanted %s", *pub.Description, description)
 		}
-		if pub.Icon.CID != icon.CID {
-			t.Errorf("invalid Icon CID: %s, wanted %s", pub.Icon.CID, icon.CID)
-		}
-		if pub.Icon.MimeType != icon.MimeType {
-			t.Errorf("invalid Icon MimeType: %s, wanted %s", pub.Icon.MimeType, icon.MimeType)
-		}
-		if pub.Icon.Size != icon.Size {
-			t.Errorf("invalid Icon Size: %d, wanted %d", pub.Icon.Size, icon.Size)
+		if *pub.Icon != *icon {
+			t.Errorf("invalid icon: %v, wanted %v", *pub.Icon, *icon)
 		}
 		if pub.Preferences.ShowInDiscover != showInDiscover {
 			t.Errorf("invalid Preferences ShowInDiscover: %v", pub.Preferences.ShowInDiscover)

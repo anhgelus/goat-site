@@ -70,14 +70,8 @@ func TestDocument_JSON(t *testing.T) {
 		if !doc.PublishedAt.Equal(publishedAt) {
 			t.Errorf("invalid publishedAt: %s, wanted %s", doc.PublishedAt, publishedAt)
 		}
-		if doc.CoverImage.CID != coverImage.CID {
-			t.Errorf("invalid cover image CID: %s, wanted %s", doc.CoverImage.CID, coverImage.CID)
-		}
-		if doc.CoverImage.MimeType != coverImage.MimeType {
-			t.Errorf("invalid cover image MimeType: %s, wanted %s", doc.CoverImage.MimeType, coverImage.MimeType)
-		}
-		if doc.CoverImage.Size != coverImage.Size {
-			t.Errorf("invalid cover image Size: %d, wanted %d", doc.CoverImage.Size, coverImage.Size)
+		if *doc.CoverImage != *coverImage {
+			t.Errorf("invalid cover image: %v, wanted %v", *doc.CoverImage, *coverImage)
 		}
 		if *doc.Path != path {
 			t.Errorf("invalid path: %s, wanted %s", *doc.Path, path)
