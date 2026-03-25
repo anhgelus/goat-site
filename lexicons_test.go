@@ -2,7 +2,6 @@ package site_test
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
@@ -31,43 +30,6 @@ func genBlob(t *rapid.T, baseMime, label string) (*site.Blob, map[string]any) {
 	}
 }
 
-func genURL(t *rapid.T, label string) string {
-	scheme := "http"
-	if rapid.Bool().Draw(t, label+"_secure?") {
-		scheme += "s"
-	}
-	base := rapid.StringOfN(rapidLowerRunes, 1, -1, 64).Draw(t, label+"_base")
-	tld := rapid.StringOfN(rapidLowerRunes, 2, -1, 10).Draw(t, label+"_tld")
-	sub := rapid.StringOfN(rapidLowerRunes, -1, -1, 32).Draw(t, label+"_sub")
-	var sb strings.Builder
-	sb.Grow(len(base) + len(tld) + len(sub) + len(scheme) + 5)
-	sb.WriteString(scheme)
-	sb.WriteString("://")
-	if sub != "" {
-		sb.WriteString(sub)
-		sb.WriteRune('.')
-	}
-	sb.WriteString(base)
-	sb.WriteRune('.')
-	sb.WriteString(tld)
-	path := genPath(t, label+"_path")
-	if path != "/" {
-		sb.Grow(len(path))
-		sb.WriteString(path)
-	}
-	return sb.String()
-}
-
-func genPath(t *rapid.T, label string) string {
-	valid := rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
-	return "/" + rapid.StringOfN(valid, -1, -1, 64).Draw(t, label)
-}
-
-func genRecordKey(t *rapid.T, label string) string {
-	valid := rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz0123456789"))
-	return rapid.StringOfN(valid, 1, -1, 128).Draw(t, label)
-}
-
 func getClient(t rapid.TB, test string) (syntax.ATURI, *atclient.APIClient) {
 	dir := identity.DefaultDirectory()
 	uri, err := syntax.ParseATURI(test)
@@ -83,10 +45,6 @@ func getClient(t rapid.TB, test string) (syntax.ATURI, *atclient.APIClient) {
 	client := atclient.NewAPIClient(id.PDSEndpoint())
 	t.Log(uri.Authority().String(), uri.RecordKey())
 	return uri, client
-}
-
-func genDid(t *rapid.T, label string) string {
-	return "did:plc:" + rapid.StringOfN(rapidLowerRunes, 24, -1, 24).Draw(t, label)
 }
 
 func genTime(t *rapid.T, label string) time.Time {
