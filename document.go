@@ -173,11 +173,11 @@ func GetDocumentVerificationTag(repo syntax.AtIdentifier, rkey syntax.RecordKey)
 	// We don't use /> to end the tag, because it is only valid for HTML5 and only required for XHTML.
 	// See https://blog.novalistic.com/archives/2017/08/optional-end-tags-in-html/
 	return template.HTML(
-		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, createAtURI(repo, CollectionDocument, rkey)),
+		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, createAtURL(repo, CollectionDocument, rkey)),
 	)
 }
 
 // getPublicationVerification returns the string used during the verification of the [Publication].
 func getDocumentVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) string {
-	return createAtURI(repo, CollectionDocument, rkey)
+	return createAtURL(repo, CollectionDocument, rkey).String()
 }

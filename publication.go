@@ -100,7 +100,7 @@ type Preferences struct {
 
 // getPublicationVerification returns the string used during the verification of the [Publication].
 func getPublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) string {
-	return createAtURI(repo, CollectionPublication, rkey)
+	return createAtURL(repo, CollectionPublication, rkey).String()
 }
 
 // HandlePublicationVerification returns an [http.Handler] used during the verification of the [Publication].
