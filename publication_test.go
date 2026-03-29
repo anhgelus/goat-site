@@ -7,6 +7,8 @@ import (
 
 	"pgregory.net/rapid"
 	site "tangled.org/anhgelus.world/goat-site"
+	"tangled.org/anhgelus.world/xrpc"
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 func genBasicTheme(t *rapid.T) (*site.Theme, map[string]any) {
@@ -25,7 +27,7 @@ func genBasicTheme(t *rapid.T) (*site.Theme, map[string]any) {
 		}
 	}
 	return theme, map[string]any{
-		"$type":            theme.Type(),
+		"$type":            theme.Collection(),
 		"accent":           colors("accent", &theme.Accent),
 		"accentForeground": colors("accentForeground", &theme.AccentForeground),
 		"foreground":       colors("foreground", &theme.Foreground),
@@ -55,12 +57,11 @@ func TestPublication_JSON(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Log(string(b))
-		var v *site.RecordJSON
-		err = json.Unmarshal(b, &v)
+		var pub *site.Publication
+		err = json.Unmarshal(b, &pub)
 		if err != nil {
 			t.Fatal(err)
 		}
-		pub := v.Record.(*site.Publication)
 		if pub.Name != name {
 			t.Errorf("invalid name: %s, wanted %s", pub.Name, name)
 		}
@@ -89,7 +90,7 @@ func TestPublication_JSON(t *testing.T) {
 		if *th.Foreground != *theme.Foreground {
 			t.Errorf("invalid theme foreground color: %s, wanted %s", th.Foreground, theme.Foreground)
 		}
-		b, err = json.Marshal(v)
+		b, err = xrpc.Marshal(pub)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -106,13 +107,25 @@ func TestGetPublication(t *testing.T) {
 		t.Skip()
 	}
 	for _, uri := range genPubAt {
-		uri, client := getClient(t, uri)
-		pub, err := site.GetRecord[*site.Publication](context.Background(), client, uri.Authority(), uri.RecordKey())
+		client := getClient()
+		u, err := atproto.ParseURI(context.Background(), client.Directory(), uri)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if pub == nil {
-			t.Errorf("pub is nil")
+		union, err := client.FetchURI(context.Background(), u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pub := new(site.Publication)
+		if !union.Value.As(pub) {
+			t.Fatalf("cannot convert union to publication: %s", union.Value.Raw)
+		}
+		v, err := pub.Verify(context.Background(), client.HTTP(), u.Authority(), *u.RecordKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !v {
+			t.Errorf("cannot verify %s", uri)
 		}
 	}
 }
@@ -122,8 +135,12 @@ func TestListPublications(t *testing.T) {
 		t.Skip("not doing http requests in short")
 	}
 	for _, uri := range genPubAt {
-		uri, client := getClient(t, uri)
-		pubs, _, err := site.ListRecords[*site.Publication](context.Background(), client, uri.Authority(), "", false)
+		client := getClient()
+		u, err := atproto.ParseURI(context.Background(), client.Directory(), uri)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pubs, _, err := xrpc.ListRecords[*site.Document](context.Background(), client, u.Authority(), 0, "", false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -131,7 +148,7 @@ func TestListPublications(t *testing.T) {
 			t.Errorf("pubs is nil")
 		}
 		for i, pub := range pubs {
-			if pub == nil {
+			if pub.Value == nil {
 				t.Errorf("pub %d is nil", i)
 			}
 		}
@@ -150,25 +167,5 @@ func TestPublicationVerification(t *testing.T) {
 	uri = site.GetPublicationVerificationURI("path/to/publication")
 	if uri != "/.well-known/site.standard.publication/path/to/publication" {
 		t.Errorf("invalid uri: %s", uri)
-	}
-}
-
-func TestPublication_Verify(t *testing.T) {
-	if testing.Short() {
-		t.Skip("not doing http requests in short")
-	}
-	for _, uri := range genPubAt {
-		id, client := getClient(t, uri)
-		pub, err := site.GetRecord[*site.Publication](context.Background(), client, id.Authority(), id.RecordKey())
-		if err != nil {
-			t.Fatal(err)
-		}
-		v, err := pub.Verify(context.Background(), client.Client, id.Authority(), id.RecordKey())
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !v {
-			t.Errorf("cannot verify %s", id)
-		}
 	}
 }

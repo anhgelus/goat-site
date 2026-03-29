@@ -2,11 +2,13 @@
 
 GoAT Site implements [Standard.site](https://standard.site/) in Go.
 
-Use official [`bluesky-social/indigo`](https://github.com/bluesky-social/indigo/).
+Use [`anhgelus.world/xrpc`](https://tangled.org/anhgelus.world/xrpc/), a lightweight XRPC client.
 
 Main repository is hosted on [Tangled](https://tangled.org/anhgelus.world/goat-site/), an ATProto forge.
 
 ## Usage
+
+> [!NOTE] Check [anhgelus.world/xrpc's documentation](https://tangled.org/anhgelus.world/xrpc) first!
 
 Get the module with:
 ```bash
@@ -18,21 +20,22 @@ Each [Standard.site lexicon](https://standard.site/#definitions) is implemented:
 - `Document` is for `site.standard.document`;
 - `Subscription` is for `site.standard.graph.subscription`.
 
-These types implement `Record`, an interface describing records.
+These types implement `xrpc.Record`, an interface describing records.
 
 You can get, list, create, update or delete them with functions:
-- `GetRecord[*site.Publication]` to get a publication;
-- `ListRecords[*site.Document]` to list documents;
-- `CreateRecord[*site.Document]` to create a new document;
-- `UpdateRecord[*site.Subscription]` to update a subscription;
-- `DeleteRecord[*site.Publication]` to delete a publication.
+- `xrpc.GetRecord[*site.Publication]` to get a publication;
+- `xrpc.ListRecords[*site.Document]` to list documents;
+- `xrpc.CreateRecord[*site.Document]` to create a new document;
+- `xrpc.UpdateRecord[*site.Subscription]` to update a subscription;
+- `xrpc.DeleteRecord[*site.Publication]` to delete a publication.
 
 You can [verify](https://standard.site/docs/verification/) a publication with `Publication.Verify` and a document with
 `Document.Verify`:
 ```go
 var pub *site.Publication
-var client *atclient.APIClient
-valid, err := pub.Verify(context.Background(), client, "did:plc:123", "pub_rkey")
+var did *atproto.DID
+var client xrpc.Client
+valid, err := pub.Verify(context.Background(), client, did, "pub_rkey")
 if err != nil {
     panic(err)
 }
@@ -41,11 +44,14 @@ if !valid {
 }
 
 var doc *site.Document
-pubUrl, err := doc.PublicationURL(context.Background(), client.Client)
+pubUrl, err := doc.PublicationURL(context.Background(), client)
 if err != nil {
     panic(err)
 }
-valid, err = doc.Verify(context.Background(), client, pubUrl, "did:plc:123", "doc_rkey")
+valid, err = doc.Verify(context.Background(), client, pubUrl, did, "doc_rkey")
+if err != nil {
+    panic(err)
+}
 if !valid {
     panic("invalid document :(")
 }
@@ -65,69 +71,30 @@ type Content struct {
 
 To use it, you have to implement `site.Record`:
 ```go
-const CollectionContent = `tld.example.content`
+var CollectionContent = atproto.NewNSIDBuilder(`tld.example`).Name("content").Build()
 
-func (c *Content) Type() string {
+func (c *Content) Collection() *atproto.NSID {
     return CollectionContent
 }
 ```
 
-But if you use `site.GetRecord[*site.Document]` to retrieve one, it will return a simple `site.Document` without your 
+But if you use `xrpc.GetRecord[*site.Document]` to retrieve one, it will return a simple `site.Document` without your 
 custom content!
-The `Document.Content` field is a `site.RecordJSON`, a wrapper.
-You can get the type of the content with `RecordJSON.Type` and the raw bytes with `RecordJSON.Raw`.
-You can also directly parse your `Content` with `RecordJSON.As`:
+The `Document.Content` field is a `xrpc.Union`, a type representing an open union.
+You can get the collection of the content with `Union.Collection()` and the raw bytes with `Union.Raw`.
+You can also directly parse your `Content` with `Union.As`:
 ```go
 var doc *site.Document
-var c *Content
+c := new(Content)
 // returns an error if it cannot parse or if the type is invalid
-err := doc.Content.As(c)
-if err != nil {
-    panic(err)
+if !doc.Content.As(c) {
+    panic("not a Content :(")
 }
 ```
 
 ### Marshal/Unmarshal
 
-When your record is sent, it is firstly marshaled to a map.
-We provide `site.MarshalToMap` which works like the standard `encoding/json`:
-```go
-var c *Content
-// mp is the map[string]any created
-mp, err := site.MarshalToMap(c)
-if err != nil {
-    panic(err)
-}
-/*
-mp = map[string]any{"content": []string{}}
-*/
-```
-
-It uses the `json` tag to determine how to marshal the content.
-It supports `omitempty` and embedded type from the standard library.
-
-If you want to marshal your field into a string, you can set `string` in the field tag (with the key `map` here).
-It automatically calls the `String() string` method.
-```go
-type Content struct {
-    Hey *url.URL `json:"hey" map:"string"`
-}
-/*
-mp = map[string]any{"hey": "https://example.org/"}
-*/
-```
-
-If you are using complexe types, you may have to implement `json.Unmarshaler` to unmarshal from JSON and
-`site.MarshalerMap` to marshal to a map.
-```go
-func (c *Content) MarshalMap() (map[string]any, error) {
-    mp := make(map[string]any, 1)
-    mp["foo"] = "bar"
-    return mp, nil
-}
-// the future call to site.MarshalToMap on *Content 
-// will return map[string]any{"foo":"bar"}.
-```
+See [anhgelus.world/xrpc documentation](https://tangled.org/anhgelus.world/xrpc/#complexe-records).
 
 ## Extending lexicons
 
@@ -141,4 +108,5 @@ type CustomPublication struct {
 }
 ```
 
-You can call any functions with this new lexicon: the embedded base lexicon already implements the `Record` interface!
+You can call any functions with this new lexicon: the embedded base lexicon already implements the `xrpc.Record`
+interface!

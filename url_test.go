@@ -1,6 +1,7 @@
 package site_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -85,10 +86,10 @@ func TestParseURL(t *testing.T) {
 			t.Fatal(err)
 		}
 		if url.IsAT() {
-			t.Errorf("invalid url kind: %s is AT", url)
+			t.Fatalf("invalid url kind: %s is AT", raw)
 		}
-		if url.String() != raw {
-			t.Errorf("invalid string: %s, wanted %s", url.String(), raw)
+		if url.URL().String() != raw {
+			t.Errorf("invalid string: %s, wanted %s", url.URL().String(), raw)
 		}
 	})
 	rapid.Check(t, func(t *rapid.T) {
@@ -101,10 +102,14 @@ func TestParseURL(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !url.IsAT() {
-			t.Errorf("invalid url kind: %s is not AT", url)
+			t.Fatalf("invalid url kind: %s is not AT", raw)
 		}
-		if url.String() != raw {
-			t.Errorf("invalid string: %s, wanted %s", url.String(), raw)
+		u, err := url.AT().URI(context.Background(), getClient().Directory())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if u.String() != raw {
+			t.Errorf("invalid string: %s, wanted %s", u.String(), raw)
 		}
 	})
 }

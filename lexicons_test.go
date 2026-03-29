@@ -1,85 +1,43 @@
 package site_test
 
 import (
-	"context"
-	"encoding/json"
-	"testing"
+	"net"
+	"net/http"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/atclient"
-	"github.com/bluesky-social/indigo/atproto/identity"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	"pgregory.net/rapid"
-	site "tangled.org/anhgelus.world/goat-site"
+	"tangled.org/anhgelus.world/xrpc"
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 var (
 	rapidLowerRunes = rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz"))
 )
 
-func genBlob(t *rapid.T, baseMime, label string) (*site.Blob, map[string]any) {
-	blob := &site.Blob{
+func genBlob(t *rapid.T, baseMime, label string) (*xrpc.Blob, map[string]any) {
+	blob := &xrpc.Blob{
 		CID: rapid.StringN(2, -1, 128).Draw(t, label+"_cid"),
 		MimeType: baseMime + "/" +
 			rapid.StringOfN(rapidLowerRunes, 2, 20, -1).Draw(t, label+"_mimeType"),
 		Size: rapid.UintMin(1).Draw(t, label+"_size"),
 	}
 	return blob, map[string]any{
-		"$type":    blob.Type(),
+		"$type":    blob.Collection(),
 		"ref":      map[string]any{"$link": blob.CID},
 		"mimeType": blob.MimeType,
 		"size":     blob.Size,
 	}
 }
 
-func getClient(t rapid.TB, test string) (syntax.ATURI, *atclient.APIClient) {
-	dir := identity.DefaultDirectory()
-	uri, err := syntax.ParseATURI(test)
-	if err != nil {
-		t.Fatal(err)
+var dir *atproto.Directory
+
+func getClient() xrpc.Client {
+	if dir == nil {
+		dir = atproto.NewDirectory(http.DefaultClient, net.DefaultResolver, 5*time.Minute)
 	}
-	var id *identity.Identity
-	id, err = dir.Lookup(context.Background(), uri.Authority())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("using", id.PDSEndpoint(), "for", test)
-	client := atclient.NewAPIClient(id.PDSEndpoint())
-	t.Log(uri.Authority().String(), uri.RecordKey())
-	return uri, client
+	return xrpc.NewClient(http.DefaultClient, dir)
 }
 
 func genTime(t *rapid.T, label string) time.Time {
 	return time.Unix(int64(rapid.Uint32().Draw(t, label)), 0)
-}
-
-func TestBlob_JSON(t *testing.T) {
-	rapid.Check(t, func(t *rapid.T) {
-		base := rapid.StringN(1, -1, 10).Draw(t, "mimeType")
-		blob, blobRaw := genBlob(t, base, "blob")
-		b, err := json.Marshal(blobRaw)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var v *site.RecordJSON
-		err = json.Unmarshal(b, &v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		bl := v.Record.(*site.Blob)
-		if bl.CID != blob.CID {
-			t.Errorf("invalid CID: %s, wanted %s", bl.CID, blob.CID)
-		}
-		if bl.MimeType != blob.MimeType {
-			t.Errorf("invalid mimeType: %s, wanted %s", bl.MimeType, blob.MimeType)
-		}
-		if bl.Size != blob.Size {
-			t.Errorf("invalid size: %d, wanted %d", bl.Size, blob.Size)
-		}
-		b, err = json.Marshal(bl)
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Log(string(b))
-	})
 }

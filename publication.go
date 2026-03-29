@@ -9,10 +9,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/anhgelus.world/xrpc"
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
-const CollectionPublication = CollectionBase + ".publication"
+var CollectionPublication = CollectionBase.Name("publication").Build()
 
 // Publication represents a collection of [Document]s published to the web.
 // It includes important information about a publication including its location on the web, theming information, user
@@ -31,7 +32,7 @@ type Publication struct {
 	Name string `json:"name"`
 	// Icon to identify the [Publication].
 	// Must be a square image and should be at least 256x256.
-	Icon *Blob `json:"icon,omitempty"`
+	Icon *xrpc.Blob `json:"icon,omitempty"`
 	// Description of the [Publication].
 	// Max length: 30000.
 	// Max graphemes: 3000.
@@ -42,17 +43,17 @@ type Publication struct {
 	Preferences *Preferences `json:"preferences,omitempty"`
 }
 
-func (p *Publication) Type() string {
+func (p *Publication) Collection() *atproto.NSID {
 	return CollectionPublication
 }
 
-func (p *Publication) MarshalMap() (map[string]any, error) {
+func (p *Publication) MarshalMap() (any, error) {
 	type t Publication
 	pp := struct {
 		t
 		URL string `json:"url"`
 	}{t(*p), strings.TrimSuffix(p.URL.String(), "/")}
-	return MarshalToMap(pp)
+	return xrpc.MarshalToMap(pp)
 }
 
 func (p *Publication) UnmarshalJSON(b []byte) error {
@@ -75,7 +76,7 @@ func (p *Publication) UnmarshalJSON(b []byte) error {
 }
 
 // Verify the [Publication].
-func (p *Publication) Verify(ctx context.Context, client *http.Client, repo syntax.AtIdentifier, rkey syntax.RecordKey) (bool, error) {
+func (p *Publication) Verify(ctx context.Context, client *http.Client, repo *atproto.DID, rkey atproto.RecordKey) (bool, error) {
 	req, err := http.NewRequest(http.MethodGet, p.URL.String()+GetPublicationVerificationURI(p.URL.Path), nil)
 	if err != nil {
 		return false, err
@@ -99,14 +100,14 @@ type Preferences struct {
 }
 
 // getPublicationVerification returns the string used during the verification of the [Publication].
-func getPublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) string {
-	return createAtURL(repo, CollectionPublication, rkey).String()
+func getPublicationVerification(repo *atproto.DID, rkey atproto.RecordKey) string {
+	return atproto.NewURI(repo, CollectionPublication, rkey).String()
 }
 
 // HandlePublicationVerification returns an [http.Handler] used during the verification of the [Publication].
 //
 // See [GetPublicationVerificationURI].
-func HandlePublicationVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) http.Handler {
+func HandlePublicationVerification(repo *atproto.DID, rkey atproto.RecordKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, getPublicationVerification(repo, rkey))
 	})
@@ -122,5 +123,5 @@ func GetPublicationVerificationURI(path string) string {
 	if len(path) > 0 && !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	return "/.well-known/" + CollectionPublication + path
+	return "/.well-known/" + CollectionPublication.String() + path
 }

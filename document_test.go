@@ -8,14 +8,16 @@ import (
 
 	"pgregory.net/rapid"
 	site "tangled.org/anhgelus.world/goat-site"
+	"tangled.org/anhgelus.world/xrpc"
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 type content struct {
 	Pages any `json:"pages"`
 }
 
-func (c *content) Type() string {
-	return `pub.leaflet.content`
+func (c *content) Collection() *atproto.NSID {
+	return atproto.NewNSIDBuilder(`pub.leaflet`).Name(`content`).Build()
 }
 
 func TestDocument_JSON(t *testing.T) {
@@ -23,7 +25,7 @@ func TestDocument_JSON(t *testing.T) {
 		var pubUrl string
 		if rapid.Bool().Draw(t, "url_at?") {
 			pubUrl = "at://" + genDid(t, "url_did") +
-				"/" + site.CollectionPublication +
+				"/" + site.CollectionPublication.String() +
 				"/" + genRecordKey(t, "url_record_key")
 		} else {
 			pubUrl = genURL(t, "url")
@@ -40,7 +42,7 @@ func TestDocument_JSON(t *testing.T) {
 			"$type":       site.CollectionDocument,
 			"site":        pubUrl,
 			"title":       title,
-			"publishedAt": publishedAt,
+			"publishedAt": publishedAt.Format(atproto.TimeFormat),
 			"path":        path,
 			"description": description,
 			"coverImage":  coverImageRaw,
@@ -48,21 +50,26 @@ func TestDocument_JSON(t *testing.T) {
 			"textContent": textContent,
 			"bskyPostRef": json.RawMessage(`{"cid":"bafyreidepvhssy3zglq3bo4nauszqhqmbk6lzzfay3r2nskvijyiewlr2u","commit":{"cid":"bafyreickwfv4p2jr6zvbdk6mldmddag2m6grpkbbvkvz57mvaqso5dpf5e","rev":"3mhm4oeyyzi2g"},"uri":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/app.bsky.feed.post/3mhm4oevhmk2d","validationStatus":"valid"}`),
 			"tags":        tags,
-			"updatedAt":   updatedAt,
+			"updatedAt":   updatedAt.Format(atproto.TimeFormat),
 		}
 		b, err := json.Marshal(input)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Log(string(b))
-		var v *site.RecordJSON
-		err = json.Unmarshal(b, &v)
+		var doc *site.Document
+		err = json.Unmarshal(b, &doc)
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc := v.Record.(*site.Document)
-		if doc.Site.String() != pubUrl {
-			t.Errorf("invalid site: %s, wanted %s", doc.Site, pubUrl)
+		var site string
+		if doc.Site.IsAT() {
+			site = doc.Site.AT().String()
+		} else {
+			site = doc.Site.URL().String()
+		}
+		if site != pubUrl {
+			t.Errorf("invalid site: %s, wanted %s", doc.Site.URL().String(), pubUrl)
 		}
 		if doc.Title != title {
 			t.Errorf("invalid title: %s, wanted %s", doc.Title, title)
@@ -76,30 +83,30 @@ func TestDocument_JSON(t *testing.T) {
 		if *doc.Path != path {
 			t.Errorf("invalid path: %s, wanted %s", *doc.Path, path)
 		}
-		if doc.Content.Record != nil {
-			t.Errorf("invalid content lexicon: %v", doc.Content.Record)
+		if doc.Content == nil {
+			t.Errorf("invalid content: is nil")
 		} else {
-			if doc.Content.Type != `pub.leaflet.content` {
-				t.Errorf("invalid content type: %s", doc.Content.Type)
+			if doc.Content.Collection().String() != `pub.leaflet.content` {
+				t.Errorf("invalid content type: %s", doc.Content.Collection())
 			}
 			if !slices.Equal(doc.Content.Raw, []byte(`{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]}`)) {
-				t.Errorf("invalid content raw: %s", doc.Content.Raw)
+				t.Errorf("invalid content raw: %s", string(doc.Content.Raw))
 			}
 		}
 		if !slices.Equal(doc.Tags, tags) {
 			t.Errorf("invalid tags: %v, wanted %v", doc.Tags, tags)
 		}
 
-		b, err = json.Marshal(v)
+		b, err = xrpc.Marshal(doc)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Log(string(b))
 
 		c := new(content)
-		err = doc.Content.As(c)
-		if err != nil {
-			t.Fatal(err)
+		ok := doc.Content.As(c)
+		if !ok {
+			t.Fatal("expected content type to be", c.Collection().String())
 		}
 		if c.Pages == nil {
 			t.Errorf("invalid content pages: nil")
@@ -118,13 +125,35 @@ func TestGetDocument(t *testing.T) {
 		t.Skip("not doing http requests in short")
 	}
 	for _, uri := range genDocAt {
-		uri, client := getClient(t, uri)
-		doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
+		client := getClient()
+		u, err := atproto.ParseURI(context.Background(), client.Directory(), uri)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if doc == nil {
-			t.Errorf("doc is nil")
+		union, err := client.FetchURI(context.Background(), u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc := new(site.Document)
+		if !union.Value.As(doc) {
+			t.Fatalf("cannot convert union to document: %s", union.Value.Raw)
+		}
+		pubURL, err := doc.PublicationURL(context.Background(), client)
+		if err != nil {
+			t.Fatal(err)
+		}
+		valid, err := doc.Verify(
+			context.Background(),
+			client.HTTP(),
+			pubURL,
+			u.Authority(),
+			*u.RecordKey(),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !valid {
+			t.Errorf("cannot verify %s", uri)
 		}
 	}
 
@@ -135,8 +164,12 @@ func TestListDocuments(t *testing.T) {
 		t.Skip("not doing http requests in short")
 	}
 	for _, uri := range genDocAt {
-		uri, client := getClient(t, uri)
-		docs, _, err := site.ListRecords[*site.Document](context.Background(), client, uri.Authority(), "", false)
+		client := getClient()
+		u, err := atproto.ParseURI(context.Background(), client.Directory(), uri)
+		if err != nil {
+			t.Fatal(err)
+		}
+		docs, _, err := xrpc.ListRecords[*site.Document](context.Background(), client, u.Authority(), 0, "", false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,46 +177,9 @@ func TestListDocuments(t *testing.T) {
 			t.Errorf("docs is nil")
 		}
 		for i, doc := range docs {
-			if doc == nil {
+			if doc.Value == nil {
 				t.Errorf("doc %d is nil", i)
 			}
-		}
-	}
-}
-
-func TestDocumentVerification(t *testing.T) {
-	tag := site.GetDocumentVerificationTag("did:plc:xyz789", "rkey")
-	if tag != `<link rel="site.standard.document" href="at://did:plc:xyz789/site.standard.document/rkey">` {
-		t.Errorf("invalid tag: %s", tag)
-	}
-}
-
-func TestDocument_Verify(t *testing.T) {
-	if testing.Short() {
-		t.Skip("not doing http requests in short")
-	}
-	for _, uri := range genDocAt {
-		uri, client := getClient(t, uri)
-		doc, err := site.GetRecord[*site.Document](context.Background(), client, uri.Authority(), uri.RecordKey())
-		if err != nil {
-			t.Fatal(err)
-		}
-		pubURL, err := doc.PublicationURL(context.Background(), client)
-		if err != nil {
-			t.Fatal(err)
-		}
-		valid, err := doc.Verify(
-			context.Background(),
-			client.Client,
-			pubURL,
-			uri.Authority(),
-			uri.RecordKey(),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !valid {
-			t.Errorf("cannot verify %s", uri)
 		}
 	}
 }

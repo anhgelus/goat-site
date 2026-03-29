@@ -6,44 +6,18 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/anhgelus.world/xrpc"
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 var (
 	ErrIncompleteURL = errors.New("incomplete url")
 )
 
-// ATURL represents a full AT [url.URL].
-type ATURL struct {
-	syntax.ATURI
-}
-
-func (at *ATURL) String() string {
-	// not using [fmt.Sprintf] because it may be slower
-	return "at://" + at.Authority().String() +
-		"/" + at.Collection().String() +
-		"/" + at.RecordKey().String()
-}
-
-// ParseATURL returns an [ATURL] from a raw string.
-func ParseATURL(raw string) (*ATURL, error) {
-	u, err := syntax.ParseATURI(raw)
-	if err != nil {
-		return nil, err
-	}
-	if u.Collection() == "" {
-		return nil, ErrIncompleteURL
-	}
-	if u.RecordKey() == "" {
-		return nil, ErrIncompleteURL
-	}
-	return &ATURL{u}, nil
-}
-
 // URL represents an [url.URL] that may be an [ATURL].
 type URL struct {
 	url *url.URL
-	at  *ATURL
+	at  *atproto.RawURI
 }
 
 // IsAT returns true if the [URL] is an [ATURL].
@@ -68,18 +42,18 @@ func (u *URL) URL() *url.URL {
 // Panics if it isn't an [ATURL].
 //
 // See [URL.IsAT].
-func (u *URL) AT() *ATURL {
+func (u *URL) AT() *atproto.RawURI {
 	if !u.IsAT() {
 		panic("not an AT URL")
 	}
 	return u.at
 }
 
-func (u *URL) String() string {
+func (u *URL) MarshalMap() (any, error) {
 	if u.IsAT() {
-		return u.at.String()
+		return xrpc.MarshalToMap(u.AT())
 	}
-	return u.url.String()
+	return xrpc.MarshalToMap(u.URL().String())
 }
 
 func (u *URL) UnmarshalJSON(b []byte) error {
@@ -99,11 +73,11 @@ func (u *URL) UnmarshalJSON(b []byte) error {
 // ParseURL returns an [URL] from a raw string.
 func ParseURL(raw string) (*URL, error) {
 	if strings.HasPrefix(raw, "at://") {
-		u, err := ParseATURL(raw)
+		u, err := atproto.ParseRawURI(raw)
 		if err != nil {
 			return nil, err
 		}
-		return &URL{at: u}, nil
+		return &URL{at: &u}, nil
 	}
 	u, err := url.Parse(raw)
 	if err != nil {

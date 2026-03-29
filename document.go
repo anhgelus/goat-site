@@ -11,25 +11,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"golang.org/x/net/html"
+	"tangled.org/anhgelus.world/xrpc"
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
-const CollectionDocument = CollectionBase + ".document"
+var CollectionDocument = CollectionBase.Name("document").Build()
 
 // Document may be standalone or associated with a [Publication].
-// This [Record] can be used to store a document's content and its associated metadata.
+// This [xrpc.Record] can be used to store a document's content and its associated metadata.
 type Document struct {
 	// Site points to a [Publication] record `at://` or a [Publication.URL] `https://` for loose documents.
 	// Avoid trailing slashes.
-	Site *URL `json:"site" map:"string"`
+	Site *URL `json:"site"`
 	// Title of the [Document].
 	// Max length: 5000.
 	// Max graphemes: 500.
 	Title string `json:"title"`
 	// PublishedAt is the [time.Time] of the [Document]'s publish time.
-	PublishedAt time.Time `json:"-"`
+	PublishedAt time.Time `json:"publishedAt"`
 	// Path is combined with [Document.Site] or [Publication.URL] to construct a canonical URL to the document.
 	// A slash should be included at the beginning of this value.
 	Path *string `json:"path,omitempty"`
@@ -39,9 +39,9 @@ type Document struct {
 	Description *string `json:"description,omitempty"`
 	// CoverImage to used for thumbnail or cover.
 	// Less than 1MB in size.
-	CoverImage *Blob `json:"coverImage,omitempty"`
-	// Content is a custom [Record] used to define the [Document]'s content.
-	Content *RecordJSON `json:"content,omitempty"`
+	CoverImage *xrpc.Blob `json:"coverImage,omitempty"`
+	// Content is an [xrpc.Union] used to define the [Document]'s content.
+	Content *xrpc.Union `json:"content,omitempty"`
 	// TextContent is a plaintext representation of the [Document.Content].
 	// Should not contain markdown or other formatting.
 	TextContent string `json:"textContent,omitempty"`
@@ -59,26 +59,22 @@ type Document struct {
 	// Max graphemes: 128.
 	Tags []string `json:"tags,omitempty"`
 	// UpdatedAt is the [time.Time] of the [Document]'s last edit.
-	UpdatedAt *time.Time `json:"-"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-func (d *Document) Type() string {
+func (d *Document) Collection() *atproto.NSID {
 	return CollectionDocument
 }
 
-func (d *Document) MarshalMap() (map[string]any, error) {
+func (d *Document) MarshalMap() (any, error) {
 	type t Document
-	mp, err := MarshalToMap(t(*d))
+	mpp, err := xrpc.MarshalToMap(t(*d))
 	if err != nil {
 		return nil, err
 	}
+	mp := mpp.(map[string]any)
 	if v, ok := mp["path"]; ok && !strings.HasPrefix(v.(string), "/") {
 		mp["path"] = "/" + v.(string)
-	}
-	mp["publishedAt"] = d.PublishedAt.UTC().Format(TimeFormat)
-	if d.UpdatedAt != nil {
-		tn := d.UpdatedAt.UTC().Format(TimeFormat)
-		mp["updatedAt"] = &tn
 	}
 	return mp, nil
 }
@@ -94,13 +90,13 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	v.t.PublishedAt, err = ParseTime(v.PublishedAt)
+	v.t.PublishedAt, err = atproto.ParseTime(v.PublishedAt)
 	if err != nil {
 		return err
 	}
 	if v.UpdatedAt != nil {
 		v.t.UpdatedAt = new(time.Time)
-		*v.t.UpdatedAt, err = ParseTime(*v.UpdatedAt)
+		*v.t.UpdatedAt, err = atproto.ParseTime(*v.UpdatedAt)
 		if err != nil {
 			return err
 		}
@@ -113,14 +109,21 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 //
 // Prefer using [GetRecord] if you plan to retrieve the record.
 // Under the hood, this method retrieves the [Publication] record if [Document.Site] is an [ATURL].
-func (d *Document) PublicationURL(ctx context.Context, client lexutil.LexClient) (*url.URL, error) {
+func (d *Document) PublicationURL(ctx context.Context, client xrpc.Client) (*url.URL, error) {
 	if !d.Site.IsAT() {
 		return d.Site.URL(), nil
 	}
-	at := d.Site.AT()
-	pub, err := GetRecord[*Publication](ctx, client, at.Authority(), at.RecordKey())
+	uri, err := d.Site.AT().URI(ctx, client.Directory())
 	if err != nil {
 		return nil, err
+	}
+	pub := new(Publication)
+	union, err := client.FetchURI(ctx, uri)
+	if err != nil {
+		return nil, err
+	}
+	if !union.Value.As(pub) {
+		return nil, ErrInvalidCollection{union.Value.Collection(), pub.Collection()}
 	}
 	return pub.URL, nil
 }
@@ -128,7 +131,7 @@ func (d *Document) PublicationURL(ctx context.Context, client lexutil.LexClient)
 var ErrCannotVerifyWithNoPath = errors.New("cannot verify a document with no path")
 
 // Verify the [Document].
-func (d *Document) Verify(ctx context.Context, client *http.Client, pubURL *url.URL, repo syntax.AtIdentifier, rkey syntax.RecordKey) (bool, error) {
+func (d *Document) Verify(ctx context.Context, client *http.Client, pubURL *url.URL, did *atproto.DID, rkey atproto.RecordKey) (bool, error) {
 	if d.Path == nil {
 		return false, ErrCannotVerifyWithNoPath
 	}
@@ -156,10 +159,10 @@ func (d *Document) Verify(ctx context.Context, client *http.Client, pubURL *url.
 				case "href":
 					href = attr.Val
 				}
-				if rel != "" && rel != CollectionDocument {
+				if rel != "" && rel != CollectionDocument.String() {
 					break
 				}
-				if href == getDocumentVerification(repo, rkey) {
+				if href == getDocumentVerification(did, rkey) {
 					return true, nil
 				}
 			}
@@ -169,15 +172,15 @@ func (d *Document) Verify(ctx context.Context, client *http.Client, pubURL *url.
 }
 
 // GetDocumentVerificationTag returns the HTML link tag checked during the verification of the [Document].
-func GetDocumentVerificationTag(repo syntax.AtIdentifier, rkey syntax.RecordKey) template.HTML {
+func GetDocumentVerificationTag(repo *atproto.DID, rkey atproto.RecordKey) template.HTML {
 	// We don't use /> to end the tag, because it is only valid for HTML5 and only required for XHTML.
 	// See https://blog.novalistic.com/archives/2017/08/optional-end-tags-in-html/
 	return template.HTML(
-		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, createAtURL(repo, CollectionDocument, rkey)),
+		fmt.Sprintf(`<link rel="%s" href="%s">`, CollectionDocument, getDocumentVerification(repo, rkey)),
 	)
 }
 
 // getPublicationVerification returns the string used during the verification of the [Publication].
-func getDocumentVerification(repo syntax.AtIdentifier, rkey syntax.RecordKey) string {
-	return createAtURL(repo, CollectionDocument, rkey).String()
+func getDocumentVerification(repo *atproto.DID, rkey atproto.RecordKey) string {
+	return atproto.NewURI(repo, CollectionDocument, rkey).String()
 }

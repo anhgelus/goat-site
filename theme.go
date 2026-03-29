@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"image/color"
 	"math"
+
+	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
-const (
-	CollectionTheme          = CollectionBase + ".theme"
-	CollectionThemeBasic     = CollectionTheme + ".basic"
-	CollectionThemeColor     = CollectionTheme + ".color"
-	CollectionThemeColorRGB  = CollectionThemeColor + "#rgb"
-	CollectionThemeColorRGBA = CollectionThemeColor + "#rgba"
+var (
+	CollectionTheme          = CollectionBase.SubAuthority("theme")
+	CollectionThemeBasic     = CollectionTheme.Name("basic").Build()
+	CollectionThemeColor     = CollectionTheme.Name("color")
+	CollectionThemeColorRGB  = CollectionThemeColor.Fragment("rgb").Build()
+	CollectionThemeColorRGBA = CollectionThemeColor.Fragment("rgba").Build()
 )
 
 // Theme ensures [Publication]s maintain their visual identity across different reading applications and platforms by
@@ -27,7 +29,7 @@ type Theme struct {
 	AccentForeground *RGB `json:"accentForeground"`
 }
 
-func (t *Theme) Type() string {
+func (t *Theme) Collection() *atproto.NSID {
 	return CollectionThemeBasic
 }
 
@@ -44,7 +46,7 @@ func NewRGB(r, g, b uint8) *RGB {
 	return &RGB{r, g, b}
 }
 
-func (r *RGB) Type() string {
+func (r *RGB) Collection() *atproto.NSID {
 	return CollectionThemeColorRGB
 }
 
@@ -80,7 +82,7 @@ func NewRGBA(r *color.RGBA) *RGBA {
 	}
 }
 
-func (r *RGBA) Type() string {
+func (r *RGBA) Collection() *atproto.NSID {
 	return CollectionThemeColorRGBA
 }
 
