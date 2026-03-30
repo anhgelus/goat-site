@@ -34,7 +34,6 @@ func TestDocument_JSON(t *testing.T) {
 		publishedAt := genTime(t, "published_at")
 		path := genPath(t, "path")
 		description := rapid.StringN(0, 3_000, 30_000).Draw(t, "description")
-		coverImage, coverImageRaw := genBlob(t, "image", "cover_image")
 		textContent := rapid.String().Draw(t, "text_content")
 		tags := rapid.SliceOfN(rapid.String(), 0, 1280).Draw(t, "tags")
 		updatedAt := genTime(t, "updated_at")
@@ -45,7 +44,6 @@ func TestDocument_JSON(t *testing.T) {
 			"publishedAt": publishedAt.Format(atproto.TimeFormat),
 			"path":        path,
 			"description": description,
-			"coverImage":  coverImageRaw,
 			"content":     json.RawMessage(`{"$type":"pub.leaflet.content","pages":[{"$type":"pub.leaflet.pages.linearDocument","blocks":[{"$type":"pub.leaflet.pages.linearDocument#block","block":{"$type":"pub.leaflet.blocks.text","plaintext":"hiiiiiiiii"}}],"id":"019d1297-2fdd-733b-9837-911e1758f300"}]}`),
 			"textContent": textContent,
 			"bskyPostRef": json.RawMessage(`{"cid":"bafyreidepvhssy3zglq3bo4nauszqhqmbk6lzzfay3r2nskvijyiewlr2u","commit":{"cid":"bafyreickwfv4p2jr6zvbdk6mldmddag2m6grpkbbvkvz57mvaqso5dpf5e","rev":"3mhm4oeyyzi2g"},"uri":"at://did:plc:jdhpqeb4cb4mng533dx56cbc/app.bsky.feed.post/3mhm4oevhmk2d","validationStatus":"valid"}`),
@@ -76,9 +74,6 @@ func TestDocument_JSON(t *testing.T) {
 		}
 		if !doc.PublishedAt.Equal(publishedAt) {
 			t.Errorf("invalid publishedAt: %s, wanted %s", doc.PublishedAt, publishedAt)
-		}
-		if *doc.CoverImage != *coverImage {
-			t.Errorf("invalid cover image: %v, wanted %v", *doc.CoverImage, *coverImage)
 		}
 		if *doc.Path != path {
 			t.Errorf("invalid path: %s, wanted %s", *doc.Path, path)

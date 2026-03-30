@@ -1,6 +1,7 @@
 package site_test
 
 import (
+	"crypto/sha256"
 	"net"
 	"net/http"
 	"time"
@@ -14,19 +15,20 @@ var (
 	rapidLowerRunes = rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz"))
 )
 
-func genBlob(t *rapid.T, baseMime, label string) (*xrpc.Blob, map[string]any) {
-	blob := &xrpc.Blob{
-		CID: rapid.StringN(2, -1, 128).Draw(t, label+"_cid"),
-		MimeType: baseMime + "/" +
-			rapid.StringOfN(rapidLowerRunes, 2, 20, -1).Draw(t, label+"_mimeType"),
-		Size: rapid.UintMin(1).Draw(t, label+"_size"),
+func genCID(t *rapid.T, label string) *atproto.CID {
+	cid := &atproto.CID{
+		Version:  atproto.CIDVersion,
+		Codec:    atproto.CIDCodecRaw,
+		HashType: atproto.CIDHashSha256,
+		HashSize: 32,
 	}
-	return blob, map[string]any{
-		"$type":    blob.Collection(),
-		"ref":      map[string]any{"$link": blob.CID},
-		"mimeType": blob.MimeType,
-		"size":     blob.Size,
+	str := rapid.StringN(64, -1, -1).Draw(t, label)
+	cp := make([]byte, 32)
+	for i, v := range sha256.Sum256([]byte(str)) {
+		cp[i] = v
 	}
+	cid.Digest = cp
+	return cid
 }
 
 var dir *atproto.Directory

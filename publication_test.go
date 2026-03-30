@@ -38,7 +38,6 @@ func genBasicTheme(t *rapid.T) (*site.Theme, map[string]any) {
 func TestPublication_JSON(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		theme, themeRaw := genBasicTheme(t)
-		icon, iconRaw := genBlob(t, "image", "icon")
 		description := rapid.StringN(2, 3_000, 30_000).Draw(t, "description")
 		name := rapid.StringN(2, 500, 5_000).Draw(t, "name")
 		url := genURL(t, "url")
@@ -46,7 +45,6 @@ func TestPublication_JSON(t *testing.T) {
 		input := map[string]any{
 			"$type":       site.CollectionPublication,
 			"basicTheme":  themeRaw,
-			"icon":        iconRaw,
 			"description": description,
 			"name":        name,
 			"url":         url,
@@ -70,9 +68,6 @@ func TestPublication_JSON(t *testing.T) {
 		}
 		if *pub.Description != description {
 			t.Errorf("invalid description: %s, wanted %s", *pub.Description, description)
-		}
-		if *pub.Icon != *icon {
-			t.Errorf("invalid icon: %v, wanted %v", *pub.Icon, *icon)
 		}
 		if pub.Preferences.ShowInDiscover != showInDiscover {
 			t.Errorf("invalid Preferences ShowInDiscover: %v", pub.Preferences.ShowInDiscover)

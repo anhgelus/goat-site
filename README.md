@@ -8,7 +8,8 @@ Main repository is hosted on [Tangled](https://tangled.org/anhgelus.world/goat-s
 
 ## Usage
 
-> [!NOTE] Check [anhgelus.world/xrpc's documentation](https://tangled.org/anhgelus.world/xrpc) first!
+> [!NOTE] 
+> Check [anhgelus.world/xrpc's documentation](https://tangled.org/anhgelus.world/xrpc) first!
 
 Get the module with:
 ```bash
