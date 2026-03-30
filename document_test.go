@@ -150,13 +150,17 @@ func TestGetDocument(t *testing.T) {
 			*u.RecordKey(),
 		)
 		if err != nil {
-			t.Fatal(err)
-		}
-		if !valid {
+			t.Errorf("cannot verify %s: %v", uri, err)
+		} else if !valid {
 			t.Errorf("cannot verify %s", uri)
 		}
+		if doc.BlueskyPostRef != nil {
+			_, err := doc.BlueskyPostRef.GetRef(context.Background(), client)
+			if err != nil {
+				t.Errorf("cannot get bluesky post ref %s: %v", doc.BlueskyPostRef.URI, err)
+			}
+		}
 	}
-
 }
 
 func TestListDocuments(t *testing.T) {
