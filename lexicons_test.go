@@ -1,7 +1,6 @@
 package site_test
 
 import (
-	"crypto/sha256"
 	"net"
 	"net/http"
 	"time"
@@ -15,27 +14,11 @@ var (
 	rapidLowerRunes = rapid.RuneFrom([]rune("abcdefghijklmnopqrstuvwxyz"))
 )
 
-func genCID(t *rapid.T, label string) *atproto.CID {
-	cid := &atproto.CID{
-		Version:  atproto.CIDVersion,
-		Codec:    atproto.CIDCodecRaw,
-		HashType: atproto.CIDHashSha256,
-		HashSize: 32,
-	}
-	str := rapid.StringN(64, -1, -1).Draw(t, label)
-	cp := make([]byte, 32)
-	for i, v := range sha256.Sum256([]byte(str)) {
-		cp[i] = v
-	}
-	cid.Digest = cp
-	return cid
-}
-
-var dir *atproto.Directory
+var dir atproto.Directory
 
 func getClient() xrpc.Client {
 	if dir == nil {
-		dir = atproto.NewDirectory(http.DefaultClient, net.DefaultResolver, 5*time.Minute)
+		dir = atproto.NewDirectory(http.DefaultClient, net.DefaultResolver)
 	}
 	return xrpc.NewClient(http.DefaultClient, dir)
 }

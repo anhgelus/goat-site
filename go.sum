@@ -2,5 +2,5 @@ golang.org/x/net v0.52.0 h1:He/TN1l0e4mmR3QqHMT2Xab3Aj3L9qjbhRm78/6jrW0=
 golang.org/x/net v0.52.0/go.mod h1:R1MAz7uMZxVMualyPXb+VaqGSa3LIaUqk0eEt3w36Sw=
 pgregory.net/rapid v1.2.0 h1:keKAYRcjm+e1F0oAuU5F5+YPAWcyxNNRK2wud503Gnk=
 pgregory.net/rapid v1.2.0/go.mod h1:PY5XlDGj0+V1FCq0o192FdRhpKHGTRIWBgqjDBTrq04=
-tangled.org/anhgelus.world/xrpc v0.0.0-20260328160318-8aa828876bb2 h1:FoR0bHys1CrnqLxQA5XM53fO+Ui4GC5ocT83fgvUu9Y=
-tangled.org/anhgelus.world/xrpc v0.0.0-20260328160318-8aa828876bb2/go.mod h1:DW43uo9DKZHVN9fiH6lAYVQ+0cfSLoceo7aE5lE1jjw=
+tangled.org/anhgelus.world/xrpc v0.1.0 h1:IFPgCf2c5j6c5IJmUx/Jid0MZdYJRxlxYAoLMF+nMRs=
+tangled.org/anhgelus.world/xrpc v0.1.0/go.mod h1:DW43uo9DKZHVN9fiH6lAYVQ+0cfSLoceo7aE5lE1jjw=
