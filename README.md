@@ -26,8 +26,8 @@ These types implement `xrpc.Record`, an interface describing records.
 You can get, list, create, update or delete them with functions:
 - `xrpc.GetRecord[*site.Publication]` to get a publication;
 - `xrpc.ListRecords[*site.Document]` to list documents;
-- `xrpc.CreateRecord[*site.Document]` to create a new document;
-- `xrpc.UpdateRecord[*site.Subscription]` to update a subscription;
+- `xrpc.CreateRecord` to create a new document;
+- `xrpc.PutRecord` to update a subscription;
 - `xrpc.DeleteRecord[*site.Publication]` to delete a publication.
 
 You can [verify](https://standard.site/docs/verification/) a publication with `Publication.Verify` and a document with
@@ -36,7 +36,8 @@ You can [verify](https://standard.site/docs/verification/) a publication with `P
 var pub *site.Publication
 var did *atproto.DID
 var client xrpc.Client
-valid, err := pub.Verify(context.Background(), client, did, "pub_rkey")
+var rkey atproto.RecordKey
+valid, err := pub.Verify(context.Background(), client, did, rkey)
 if err != nil {
     panic(err)
 }
@@ -49,7 +50,7 @@ pubUrl, err := doc.PublicationURL(context.Background(), client)
 if err != nil {
     panic(err)
 }
-valid, err = doc.Verify(context.Background(), client, pubUrl, did, "doc_rkey")
+valid, err = doc.Verify(context.Background(), client, pubUrl, did, rkey)
 if err != nil {
     panic(err)
 }
