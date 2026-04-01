@@ -37,7 +37,7 @@ var pub *site.Publication
 var did *atproto.DID
 var client xrpc.Client
 var rkey atproto.RecordKey
-valid, err := pub.Verify(context.Background(), client, did, rkey)
+valid, err := pub.Verify(context.TODO(), client, did, rkey)
 if err != nil {
     panic(err)
 }
@@ -46,11 +46,11 @@ if !valid {
 }
 
 var doc *site.Document
-pubUrl, err := doc.PublicationURL(context.Background(), client)
+pubUrl, err := doc.PublicationURL(context.TODO(), client)
 if err != nil {
     panic(err)
 }
-valid, err = doc.Verify(context.Background(), client, pubUrl, did, rkey)
+valid, err = doc.Verify(context.TODO(), client, pubUrl, did, rkey)
 if err != nil {
     panic(err)
 }
