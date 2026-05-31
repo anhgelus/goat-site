@@ -6,10 +6,10 @@ import (
 	"slices"
 	"testing"
 
+	site "anhgelus.world/goat-site"
+	"anhgelus.world/xrpc"
+	"anhgelus.world/xrpc/atproto"
 	"pgregory.net/rapid"
-	site "tangled.org/anhgelus.world/goat-site"
-	"tangled.org/anhgelus.world/xrpc"
-	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 type content struct {

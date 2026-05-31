@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	site "anhgelus.world/goat-site"
 	"pgregory.net/rapid"
-	site "tangled.org/anhgelus.world/goat-site"
 )
 
 func genDid(t *rapid.T, label string) string {

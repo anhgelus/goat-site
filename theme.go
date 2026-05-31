@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"math"
 
-	"tangled.org/anhgelus.world/xrpc/atproto"
+	"anhgelus.world/xrpc/atproto"
 )
 
 var (

@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"tangled.org/anhgelus.world/xrpc"
-	"tangled.org/anhgelus.world/xrpc/atproto"
+	"anhgelus.world/xrpc"
+	"anhgelus.world/xrpc/atproto"
 )
 
 var CollectionPublication = CollectionBase.Name("publication").Build()

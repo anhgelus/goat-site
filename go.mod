@@ -1,9 +1,10 @@
-module tangled.org/anhgelus.world/goat-site
+module anhgelus.world/goat-site
 
 go 1.25.0
 
 require (
 	golang.org/x/net v0.52.0
 	pgregory.net/rapid v1.2.0
-	tangled.org/anhgelus.world/xrpc v0.4.0
 )
+
+require anhgelus.world/xrpc v0.5.0

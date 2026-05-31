@@ -13,7 +13,7 @@ Main repository is hosted on [Tangled](https://tangled.org/anhgelus.world/goat-s
 
 Get the module with:
 ```bash
-go get -u tangled.org/anhgelus.world/goat-site
+go get -u anhgelus.world/goat-site
 ```
 
 Each [Standard.site lexicon](https://standard.site/#definitions) is implemented:

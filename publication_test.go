@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	site "anhgelus.world/goat-site"
+	"anhgelus.world/xrpc"
+	"anhgelus.world/xrpc/atproto"
 	"pgregory.net/rapid"
-	site "tangled.org/anhgelus.world/goat-site"
-	"tangled.org/anhgelus.world/xrpc"
-	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 func genBasicTheme(t *rapid.T) (*site.Theme, map[string]any) {

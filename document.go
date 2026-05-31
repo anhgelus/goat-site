@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"anhgelus.world/xrpc"
+	"anhgelus.world/xrpc/atproto"
 	"golang.org/x/net/html"
-	"tangled.org/anhgelus.world/xrpc"
-	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 var CollectionDocument = CollectionBase.Name("document").Build()

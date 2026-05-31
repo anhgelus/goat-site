@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"anhgelus.world/xrpc"
+	"anhgelus.world/xrpc/atproto"
 	"pgregory.net/rapid"
-	"tangled.org/anhgelus.world/xrpc"
-	"tangled.org/anhgelus.world/xrpc/atproto"
 )
 
 var (
@@ -20,7 +20,7 @@ func getClient() xrpc.Client {
 	if dir == nil {
 		dir = atproto.NewDirectory(http.DefaultClient, net.DefaultResolver)
 	}
-	return xrpc.NewClient(http.DefaultClient, dir, "GoAT Site tests v0.1.2 (Linux; Tangled Spindle; +https://tangled.org/anhgelus.world/goat-site/)")
+	return xrpc.NewClient(http.DefaultClient, dir, "GoAT Site tests v0.1.2 (Linux; Tangled Spindle; +https://anhgelus.world/goat-site/)")
 }
 
 func genTime(t *rapid.T, label string) time.Time {

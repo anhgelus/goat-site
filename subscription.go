@@ -3,7 +3,7 @@ package site
 import (
 	"encoding/json"
 
-	"tangled.org/anhgelus.world/xrpc/atproto"
+	"anhgelus.world/xrpc/atproto"
 )
 
 var CollectionSubscription = CollectionBase.SubAuthority("graph").Name("subscription").Build()
