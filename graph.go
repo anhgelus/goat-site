@@ -18,6 +18,7 @@ type Subscription struct {
 	// Publication is an AT-URI reference to the publication record being subscribed to.
 	// E.g., `at://did:plc:abc123/site.standard.publication/xyz789`.
 	Publication atproto.RawURI `json:"publication"`
+	CreatedAt   *time.Time     `json:"createdAt,omitempty"`
 }
 
 func (s *Subscription) Collection() *atproto.NSID {
