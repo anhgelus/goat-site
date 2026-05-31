@@ -59,6 +59,8 @@ type Document struct {
 	Tags []string `json:"tags,omitempty"`
 	// Contributors who helped for the [Document].
 	Contributors []*Contributor `json:"contributors,omitempty"`
+	// Links describes relationships between this document and external resources.
+	Links *xrpc.Union `json:"links,omitempty"`
 	// UpdatedAt is the [time.Time] of the [Document]'s last edit.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
