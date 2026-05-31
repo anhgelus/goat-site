@@ -16,7 +16,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-var CollectionDocument = CollectionBase.Name("document").Build()
+var (
+	collectionDocument    = CollectionBase.Name("document")
+	CollectionDocument    = collectionDocument.Build()
+	CollectionContributor = collectionDocument.Fragment("contributor").Build()
+)
 
 // Document may be standalone or associated with a [Publication].
 // This [xrpc.Record] can be used to store a document's content and its associated metadata.
@@ -53,6 +57,8 @@ type Document struct {
 	// Max length: 1280.
 	// Max graphemes: 128.
 	Tags []string `json:"tags,omitempty"`
+	// Contributors who helped for the [Document].
+	Contributors []*Contributor `json:"contributors,omitempty"`
 	// UpdatedAt is the [time.Time] of the [Document]'s last edit.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
@@ -178,4 +184,22 @@ func GetDocumentVerificationTag(repo *atproto.DID, rkey atproto.RecordKey) templ
 // getPublicationVerification returns the string used during the verification of the [Publication].
 func getDocumentVerification(repo *atproto.DID, rkey atproto.RecordKey) string {
 	return atproto.NewURI(repo, CollectionDocument, rkey).String()
+}
+
+// Contributor of a [Document].
+type Contributor struct {
+	// DID of the [Contributor].
+	DID *atproto.DID `json:"did"`
+	// Role of the [Contributor] in the [Document].
+	// Max length: 1000.
+	// Max graphemes: 100.
+	Role string `json:"role,omitempty"`
+	// DisplayName overrides the name of the [Contributor].
+	// Max length: 1000.
+	// Max graphemes: 100.
+	DisplayName string `json:"displayName,omitempty"`
+}
+
+func (c *Contributor) Collection() *atproto.NSID {
+	return CollectionContributor
 }
