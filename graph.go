@@ -1,12 +1,16 @@
 package site
 
 import (
-	"encoding/json"
+	"time"
 
 	"anhgelus.world/xrpc/atproto"
 )
 
-var CollectionSubscription = CollectionBase.SubAuthority("graph").Name("subscription").Build()
+var (
+	collectionGraph        = CollectionBase.SubAuthority("graph")
+	CollectionSubscription = collectionGraph.Name("subscription").Build()
+	CollectionRecommend    = collectionGraph.Name("recommend").Build()
+)
 
 // Subscription enable users to follow publications and receive updates about new content.
 // They represent the social connection between readers and the publications they're interested in.
@@ -16,18 +20,16 @@ type Subscription struct {
 	Publication atproto.RawURI `json:"publication"`
 }
 
-func (s *Subscription) UnmarshalJSON(b []byte) error {
-	var v struct {
-		Publication string `json:"publication"`
-	}
-	err := json.Unmarshal(b, &v)
-	if err != nil {
-		return err
-	}
-	s.Publication, err = atproto.ParseRawURI(v.Publication)
-	return err
-}
-
 func (s *Subscription) Collection() *atproto.NSID {
 	return CollectionSubscription
+}
+
+type Recommend struct {
+	// Document is an AT-URI reference to the recommended document.
+	Document  atproto.RawURI `json:"document"`
+	CreatedAt time.Time      `json:"createdAt"`
+}
+
+func (r *Recommend) Collection() *atproto.NSID {
+	return CollectionRecommend
 }
