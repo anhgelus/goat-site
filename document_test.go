@@ -92,7 +92,7 @@ func TestDocument_JSON(t *testing.T) {
 			t.Errorf("invalid tags: %v, wanted %v", doc.Tags, tags)
 		}
 
-		b, err = xrpc.Marshal(doc)
+		b, err = xrpc.Marshal(doc, false)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -85,7 +85,7 @@ func TestPublication_JSON(t *testing.T) {
 		if *th.Foreground != *theme.Foreground {
 			t.Errorf("invalid theme foreground color: %s, wanted %s", th.Foreground, theme.Foreground)
 		}
-		b, err = xrpc.Marshal(pub)
+		b, err = xrpc.Marshal(pub, false)
 		if err != nil {
 			t.Fatal(err)
 		}
