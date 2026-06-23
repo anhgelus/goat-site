@@ -14,7 +14,9 @@ var (
 	ErrIncompleteURL = errors.New("incomplete url")
 )
 
-// URL represents an [url.URL] that may be an [ATURL].
+// URL represents an [url.URL] that may be an [atproto.RawURI].
+//
+// See [ParseURL], [FromURL] and [FromRawAT].
 type URL struct {
 	url *url.URL
 	at  *atproto.RawURI
@@ -77,12 +79,20 @@ func ParseURL(raw string) (*URL, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &URL{at: &u}, nil
+		return FromRawAT(u), nil
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
 		return nil, err
 	}
+	return FromURL(u), nil
+}
+
+func FromRawAT(raw atproto.RawURI) *URL {
+	return &URL{at: &raw}
+}
+
+func FromURL(u *url.URL) *URL {
 	u.Path = strings.TrimPrefix(u.Path, "/")
-	return &URL{url: u}, nil
+	return &URL{url: u}
 }
