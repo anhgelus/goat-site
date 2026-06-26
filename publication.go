@@ -48,25 +48,27 @@ func (p *Publication) Collection() *atproto.NSID {
 }
 
 func (p *Publication) MarshalMap() (any, error) {
-	type t Publication
+	type T Publication
 	pp := struct {
-		t
+		T
 		URL string `json:"url"`
-	}{t(*p), strings.TrimSuffix(p.URL.String(), "/")}
-	return xrpc.MarshalToMap(pp)
+	}{T(*p), strings.TrimSuffix(p.URL.String(), "/")}
+	foo, _ := xrpc.MarshalToMap(pp)
+	fmt.Printf("inside: %v\n", foo)
+	return foo, nil
 }
 
 func (p *Publication) UnmarshalJSON(b []byte) error {
-	type t Publication
+	type T Publication
 	var pp struct {
-		t
+		T
 		URL string `json:"url"`
 	}
 	err := json.Unmarshal(b, &pp)
 	if err != nil {
 		return err
 	}
-	*p = Publication(pp.t)
+	*p = Publication(pp.T)
 	p.URL, err = url.Parse(pp.URL)
 	if err != nil {
 		return err

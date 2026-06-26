@@ -70,8 +70,8 @@ func (d *Document) Collection() *atproto.NSID {
 }
 
 func (d *Document) MarshalMap() (any, error) {
-	type t Document
-	mpp, err := xrpc.MarshalToMap(t(*d))
+	type T Document
+	mpp, err := xrpc.MarshalToMap(T(*d))
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +83,9 @@ func (d *Document) MarshalMap() (any, error) {
 }
 
 func (d *Document) UnmarshalJSON(b []byte) error {
-	type t Document
+	type T Document
 	var v struct {
-		t
+		T
 		PublishedAt string  `json:"publishedAt"`
 		UpdatedAt   *string `json:"updatedAt,omitempty"`
 	}
@@ -93,18 +93,18 @@ func (d *Document) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	v.t.PublishedAt, err = atproto.ParseTime(v.PublishedAt)
+	v.T.PublishedAt, err = atproto.ParseTime(v.PublishedAt)
 	if err != nil {
 		return err
 	}
 	if v.UpdatedAt != nil {
-		v.t.UpdatedAt = new(time.Time)
-		*v.t.UpdatedAt, err = atproto.ParseTime(*v.UpdatedAt)
+		v.T.UpdatedAt = new(time.Time)
+		*v.T.UpdatedAt, err = atproto.ParseTime(*v.UpdatedAt)
 		if err != nil {
 			return err
 		}
 	}
-	*d = Document(v.t)
+	*d = Document(v.T)
 	return nil
 }
 

@@ -1,6 +1,6 @@
-anhgelus.world/xrpc v0.6.1 h1:NP2Qy1sbiMGTY3QsRp3CZ4ApkzE4ipDw+D+V6hgAS3M=
-anhgelus.world/xrpc v0.6.1/go.mod h1:WAVSGXd0UI2CYK+tRUQ1+fbeb6ULBy5gqFpowfzUizY=
-golang.org/x/net v0.52.0 h1:He/TN1l0e4mmR3QqHMT2Xab3Aj3L9qjbhRm78/6jrW0=
-golang.org/x/net v0.52.0/go.mod h1:R1MAz7uMZxVMualyPXb+VaqGSa3LIaUqk0eEt3w36Sw=
+anhgelus.world/xrpc v0.6.3 h1:xP3gZi36Kk1XlXuxZkSIhj6XVs2KXIV9h3nt3NllJxY=
+anhgelus.world/xrpc v0.6.3/go.mod h1:WAVSGXd0UI2CYK+tRUQ1+fbeb6ULBy5gqFpowfzUizY=
+golang.org/x/net v0.56.0 h1:Rw8j/hFzGvJUZwNBXnAtf5sVDVt+65SK2C7IxCxZt5o=
+golang.org/x/net v0.56.0/go.mod h1:D3Ku6r+V6JROoZK144D2XfMHFcMq/0zSfLelVTCFKec=
 pgregory.net/rapid v1.2.0 h1:keKAYRcjm+e1F0oAuU5F5+YPAWcyxNNRK2wud503Gnk=
 pgregory.net/rapid v1.2.0/go.mod h1:PY5XlDGj0+V1FCq0o192FdRhpKHGTRIWBgqjDBTrq04=
