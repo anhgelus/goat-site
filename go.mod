@@ -7,4 +7,4 @@ require (
 	pgregory.net/rapid v1.2.0
 )
 
-require anhgelus.world/xrpc v0.6.3
+require anhgelus.world/xrpc v0.6.4
