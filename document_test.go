@@ -96,7 +96,6 @@ func TestDocument_JSON(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Log(string(b))
 
 		c := new(content)
 		ok := doc.Content.As(c)

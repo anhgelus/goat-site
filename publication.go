@@ -49,13 +49,12 @@ func (p *Publication) Collection() *atproto.NSID {
 
 func (p *Publication) MarshalMap() (any, error) {
 	type T Publication
-	pp := struct {
-		T
-		URL string `json:"url"`
-	}{T(*p), strings.TrimSuffix(p.URL.String(), "/")}
-	foo, _ := xrpc.MarshalToMap(pp)
-	fmt.Printf("inside: %v\n", foo)
-	return foo, nil
+	pub, err := xrpc.MarshalToMap(T(*p))
+	if err != nil {
+		return nil, err
+	}
+	pub.(map[string]any)["url"] = strings.TrimSuffix(p.URL.String(), "/")
+	return pub, nil
 }
 
 func (p *Publication) UnmarshalJSON(b []byte) error {
