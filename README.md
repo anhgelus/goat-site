@@ -6,6 +6,8 @@ Use [`anhgelus.world/xrpc`](https://tangled.org/anhgelus.world/xrpc/), a lightwe
 
 Main repository is hosted on [Tangled](https://tangled.org/anhgelus.world/goat-site/), an ATProto forge.
 
+My [website](https://tangled.org/anhgelus.world/small-web) is using this library to publish its content on ATProto.
+
 ## Usage
 
 > [!NOTE] 
